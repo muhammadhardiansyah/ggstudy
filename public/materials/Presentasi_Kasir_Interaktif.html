@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Kasir Interaktif (Input & Fungsi)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #fdfbf7; color: #333; overflow: hidden; }
+        .slide-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%); padding: 16px; }
+        .slide { display: none; width: 88%; max-width: 900px; height: 84%; background: #ffffff; border-radius: 20px; padding: 40px 50px; box-shadow: 0 15px 35px rgba(212, 163, 115, 0.2); border: 3px solid #d4a373; box-sizing: border-box; overflow-y: auto; }
+        .slide.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        h1, h2 { color: #d4a373; text-shadow: none; margin-top: 0; }
+        h1 { font-size: clamp(1.8rem, 4vw, 3rem); text-align: center; margin-bottom: 20px; line-height: 1.2; font-weight: 900; color: #cc8b56; }
+        h2 { font-size: clamp(1.3rem, 3vw, 2.2rem); border-bottom: 3px dashed #e9edc9; padding-bottom: 15px; margin-bottom: 20px; color: #a98467; }
+        p, li { font-size: clamp(0.95rem, 2vw, 1.3rem); line-height: 1.6; color: #5c677d; }
+        ul { padding-left: 24px; }
+        li { margin-bottom: 12px; }
+        pre { background-color: #2b2d42; color: #edf2f4; padding: 18px; border-radius: 10px; font-family: 'Consolas', 'Courier New', monospace; font-size: clamp(0.85rem, 1.8vw, 1.15rem); overflow-x: auto; border-left: 6px solid #ef233c; box-shadow: 0 4px 6px rgba(0,0,0,0.1); line-height: 1.55; }
+        code { color: #ef233c; font-weight: bold; font-family: 'Consolas', monospace; }
+        .blank { display: inline-block; min-width: 80px; height: 26px; background-color: #8d99ae; border-bottom: 3px dashed #edf2f4; margin: 0 4px; vertical-align: middle; color: #edf2f4; text-align: center; font-weight: bold; padding: 0 6px; }
+        .controls { position: absolute; bottom: 24px; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; }
+        button { background-color: #ef233c; color: #ffffff; border: none; padding: 12px 24px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 6px rgba(239, 35, 60, 0.3); touch-action: manipulation; }
+        button:hover { background-color: #d90429; box-shadow: 0 6px 12px rgba(217, 4, 41, 0.4); transform: translateY(-2px); }
+        button:disabled { background-color: #ffb5a7; color: #fff; cursor: not-allowed; box-shadow: none; transform: none; }
+        .slide-number { position: absolute; bottom: 28px; right: 30px; font-size: 1.2rem; color: #a98467; font-weight: bold; }
+        .highlight { color: #d90429; font-weight: bold; }
+        .info-box { background-color: #f8edeb; border-left: 5px solid #ffb5a7; padding: 14px 18px; border-radius: 6px; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            .slide { width: 95%; height: 84%; padding: 24px 20px; border-radius: 14px; border-width: 2px; }
+            .controls { bottom: 16px; gap: 12px; }
+            button { padding: 10px 18px; font-size: 0.95rem; }
+            .slide-number { bottom: 20px; right: 20px; font-size: 1rem; }
+            ul { padding-left: 20px; }
+            pre { padding: 12px; }
+        }
+        @media (max-width: 480px) {
+            .slide { width: 96%; height: 85%; padding: 20px 15px; }
+            .controls { bottom: 12px; gap: 10px; }
+            button { padding: 9px 14px; font-size: 0.88rem; }
+            .slide-number { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Slide 1 -->
+        <div class="slide active" id="slide-1">
+            <h1 style="margin-top: 10%;">🗣️ Sistem Kasir Interaktif</h1>
+            <h2 style="text-align: center; border: none; color: #a98467; font-size: clamp(1.2rem, 2.5vw, 1.6rem);">Menggabungkan Fungsi (def) dengan Input User</h2>
+            <p style="text-align: center; color: #ef233c; font-style: italic; font-weight: bold; font-size: clamp(1.1rem, 2vw, 1.5rem); margin-top: 30px;">Tantangan Coding: Level Lanjut (Advanced)</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide" id="slide-2">
+            <h2>🛒 Masalah di Kantin Sebenarnya</h2>
+            <p>Di dunia nyata, program kasir <b>tidak mungkin</b> sudah tahu harga dan jumlah pesanan sejak awal! Kasir harus <i>mengetikkan</i> harga dan jumlahnya saat ada pembeli datang.</p>
+            <p>Karena itu, kita akan meningkatkan program kita menggunakan perintah <span class="highlight">input()</span>.</p>
+            <div class="info-box">
+                <p style="margin: 0;"><b>Tantangan Baru:</b> Nilai yang diketik melalui <code>input()</code> selalu dianggap sebagai <b>Teks (String)</b> oleh Python. Kita harus mengubahnya menjadi <b>Angka (Integer)</b> agar bisa dihitung!</p>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide" id="slide-3">
+            <h2>🛡️ Senjata Baru: Konversi int()</h2>
+            <p>Jika kita mengetik angka 10 di <code>input()</code>, Python melihatnya sebagai huruf "10", bukan angka sepuluh.</p>
+            <p>Jika huruf "10" dikali 3, hasilnya error atau menjadi "101010"! 😱</p>
+            <p><b>Solusi:</b> Bungkus perintah <code>input()</code> dengan <code style="color: #2a9d8f;">int()</code>. Ini akan "memaksa" teks berubah menjadi angka utuh.</p>
+            <pre><code><span style="color:#65737e;"># Contoh yang BENAR:</span>
+jumlah = <span style="color:#2a9d8f; font-weight:bold;">int</span>(input(<span style="color:#c3e88d;">"Beli berapa? "</span>))</code></pre>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide" id="slide-4">
+            <h2>🧩 Latihan 1: Meminta Data dari Kasir</h2>
+            <p><b>Misi:</b> Lengkapi kode rumpang <span class="blank">____</span> di bawah agar komputer bisa bertanya kepada kasir, lalu mengubah jawabannya menjadi angka.</p>
+            <pre><code><span style="color:#65737e;"># Fungsi perhitungannya sama seperti sebelumnya</span>
+<span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_total</span>(harga, jumlah):
+    <span style="color:#c792ea;">return</span> harga * jumlah
+
+<span style="color:#65737e;"># Meminta kasir mengetik harga & jumlah</span>
+harga_pesanan = <span class="blank">____</span>(<span class="blank">____</span>(<span style="color:#c3e88d;">"Berapa harga 1 porsi? Rp "</span>))
+jumlah_beli = <span class="blank">____</span>(<span class="blank">____</span>(<span style="color:#c3e88d;">"Beli berapa porsi? "</span>))
+
+<span style="color:#65737e;"># Memasukkan jawaban kasir ke dalam fungsi</span>
+tagihan = hitung_total(harga_pesanan, jumlah_beli)
+print(<span style="color:#c3e88d;">"Total Tagihan: Rp"</span>, tagihan)</code></pre>
+            <p style="font-size: 1.05rem; color: #d90429;"><i>Petunjuk: Gunakan senjata baru kita int() dan perintah input() secara berurutan!</i></p>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide" id="slide-5">
+            <h2>🧩 Latihan 2: Membayar dan Kembalian</h2>
+            <p><b>Misi:</b> Setelah tagihan muncul, kasir harus bertanya berapa uang yang diserahkan oleh pembeli.</p>
+            <pre><code><span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_kembalian</span>(uang, total):
+    <span style="color:#c792ea;">return</span> uang - total
+
+<span style="color:#65737e;"># Bertanya uang yang dibayarkan</span>
+uang_pembeli = int(<span class="blank">____</span>(<span style="color:#c3e88d;">"Masukkan uang pembayaran: Rp "</span>))
+
+<span style="color:#65737e;"># Menghitung sisa kembalian (tagihan diambil dari kode sebelumnya)</span>
+kembalian = hitung_kembalian(<span class="blank">____</span>, tagihan)
+print(<span style="color:#c3e88d;">"Kembalian Anda: Rp"</span>, kembalian)</code></pre>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide" id="slide-6">
+            <h2>🚀 Kode Lengkap Program Kasir</h2>
+            <p>Ini adalah program kasir sungguhan! Salin dan jalankan kodenya. Kamu bebas mengetik harga, jumlah, dan uang bayar sesukamu di terminal komputer!</p>
+            <pre style="font-size: clamp(0.75rem, 1.6vw, 0.95rem);"><code><span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_total</span>(harga, jumlah):
+    <span style="color:#c792ea;">return</span> harga * jumlah
+
+<span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_kembalian</span>(uang, total):
+    <span style="color:#c792ea;">return</span> uang - total
+
+print(<span style="color:#c3e88d;">"=== WARUNG KODING OTOMATIS ==="</span>)
+
+<span style="color:#65737e;"># Tahap 1: Input Pemesanan</span>
+harga_pesanan = int(input(<span style="color:#c3e88d;">"Berapa harga 1 porsi? Rp "</span>))
+jumlah_beli = int(input(<span style="color:#c3e88d;">"Beli berapa porsi? "</span>))
+
+total_tagihan = hitung_total(harga_pesanan, jumlah_beli)
+print(<span style="color:#c3e88d;">">> Total Tagihan: Rp"</span>, total_tagihan)
+print(<span style="color:#c3e88d;">"------------------------------"</span>)
+
+<span style="color:#65737e;"># Tahap 2: Pembayaran</span>
+uang_pembeli = int(input(<span style="color:#c3e88d;">"Uang yang dibayarkan: Rp "</span>))
+kembalian = hitung_kembalian(uang_pembeli, total_tagihan)
+
+print(<span style="color:#c3e88d;">">> Kembalian: Rp"</span>, kembalian)
+print(<span style="color:#c3e88d;">"=== TERIMA KASIH ==="</span>)</code></pre>
+        </div>
+
+        <div class="controls">
+            <button id="btn-prev" onclick="changeSlide(-1)">&#9664; Sebelumnya</button>
+            <button id="btn-next" onclick="changeSlide(1)">Selanjutnya &#9654;</button>
+        </div>
+        <div class="slide-number" id="slide-counter">1 / 6</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        function notifyParent() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'slideChange',
+                    currentSlide: currentSlide + 1,
+                    totalSlides: slides.length
+                }, '*');
+            }
+        }
+
+        function updateButtons() {
+            btnPrev.disabled = currentSlide === 0;
+            btnNext.disabled = currentSlide === slides.length - 1;
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                    slide.scrollTop = 0;
+                }
+            });
+            if (counter) counter.innerText = (index + 1) + " / " + slides.length;
+            updateButtons();
+            notifyParent();
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+            showSlide(currentSlide);
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === 'Space') {
+                changeSlide(1);
+            } else if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            }
+        });
+
+        // Touch Swipe Support for Mobile
+        let touchstartX = 0;
+        let touchendX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', function(e) {
+            touchendX = e.changedTouches[0].screenX;
+            if (touchendX < touchstartX - 50) changeSlide(1);
+            if (touchendX > touchstartX + 50) changeSlide(-1);
+        }, { passive: true });
+
+        // PostMessage communication with portal
+        window.addEventListener('message', function(e) {
+            if (e.data === 'next') changeSlide(1);
+            if (e.data === 'prev') changeSlide(-1);
+            if (typeof e.data?.goToSlide === 'number') {
+                const target = Math.max(0, Math.min(slides.length - 1, e.data.goToSlide - 1));
+                currentSlide = target;
+                showSlide(currentSlide);
+            }
+        });
+        
+        updateButtons();
+        notifyParent();
+    </script>
+</body>
+</html>
+

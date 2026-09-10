@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pabrik Robot Pintar (Belajar Function)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f9f9; color: #333333; overflow: hidden; }
+        .slide-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%); padding: 16px; }
+        .slide { display: none; width: 88%; max-width: 900px; height: 82%; background: #ffffff; border-radius: 20px; padding: 40px 50px; box-shadow: 0 15px 30px rgba(0, 150, 136, 0.2); border: 3px solid #4dd0e1; box-sizing: border-box; overflow-y: auto; }
+        .slide.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        h1, h2 { color: #00838f; text-shadow: none; margin-top: 0; }
+        h1 { font-size: clamp(1.8rem, 4vw, 3rem); text-align: center; margin-bottom: 20px; line-height: 1.25; font-weight: 900; }
+        h2 { font-size: clamp(1.3rem, 3vw, 2.2rem); border-bottom: 3px dashed #26c6da; padding-bottom: 15px; margin-bottom: 20px; }
+        p, li { font-size: clamp(0.95rem, 2vw, 1.25rem); line-height: 1.6; color: #37474f; }
+        ul { padding-left: 24px; }
+        li { margin-bottom: 12px; }
+        pre { background-color: #263238; color: #eeffff; padding: 18px; border-radius: 10px; font-family: 'Consolas', 'Courier New', monospace; font-size: clamp(0.85rem, 1.8vw, 1.15rem); overflow-x: auto; border-left: 6px solid #ffca28; box-shadow: 0 4px 6px rgba(0,0,0,0.1); line-height: 1.55; }
+        code { color: #ffca28; font-weight: bold; font-family: 'Consolas', monospace; }
+        .blank { display: inline-block; min-width: 70px; height: 26px; background-color: #455a64; border-bottom: 3px dashed #ffca28; margin: 0 4px; vertical-align: middle; color: #ffca28; text-align: center; font-weight: bold; padding: 0 6px; }
+        .controls { position: absolute; bottom: 24px; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; }
+        button { background-color: #00acc1; color: #ffffff; border: none; padding: 12px 24px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 6px rgba(0, 172, 193, 0.3); touch-action: manipulation; }
+        button:hover { background-color: #00838f; box-shadow: 0 6px 12px rgba(0, 131, 143, 0.4); transform: translateY(-2px); }
+        button:disabled { background-color: #b2ebf2; color: #00838f; cursor: not-allowed; box-shadow: none; transform: none; }
+        .slide-number { position: absolute; bottom: 28px; right: 30px; font-size: 1.2rem; color: #006064; font-weight: bold; }
+        .highlight { color: #ff8f00; font-weight: bold; }
+        .info-box { background-color: #e3f2fd; border-left: 5px solid #2196f3; padding: 14px 18px; border-radius: 6px; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            .slide { width: 95%; height: 84%; padding: 24px 20px; border-radius: 14px; border-width: 2px; }
+            .controls { bottom: 16px; gap: 12px; }
+            button { padding: 10px 18px; font-size: 0.95rem; }
+            .slide-number { bottom: 20px; right: 20px; font-size: 1rem; }
+            ul { padding-left: 20px; }
+            pre { padding: 12px; }
+        }
+        @media (max-width: 480px) {
+            .slide { width: 96%; height: 85%; padding: 20px 15px; }
+            .controls { bottom: 12px; gap: 10px; }
+            button { padding: 9px 14px; font-size: 0.88rem; }
+            .slide-number { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Slide 1 -->
+        <div class="slide active" id="slide-1">
+            <h1 style="margin-top: 10%;">🤖 Pabrik Robot Pintar</h1>
+            <h2 style="text-align: center; border: none; color: #006064; font-size: clamp(1.2rem, 2.5vw, 1.6rem);">Membuat Fungsi Sendiri (Custom Function)</h2>
+            <p style="text-align: center; color: #ff8f00; font-style: italic; font-weight: bold; font-size: clamp(1.1rem, 2vw, 1.5rem); margin-top: 30px;">Belajar Kode Rumpang (Fill-in-the-blanks)</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide" id="slide-2">
+            <h2>💡 Apa itu Fungsi (Function)?</h2>
+            <p>Sebelumnya kita sudah memakai fungsi buatan orang lain seperti <code>math.sqrt()</code> dan <code>datetime.now()</code>.</p>
+            <p>Sekarang, kita akan membuat fungsi kita sendiri! Di dalam Pabrik Robot, membuat fungsi sama seperti <b>memberikan kemampuan baru kepada Robot</b>.</p>
+            <div class="info-box">
+                <p style="margin: 0;">Kita menggunakan perintah ajaib bernama <span class="highlight">def</span> (Define) untuk mendefinisikan kemampuan baru ini.</p>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide" id="slide-3">
+            <h2>⚙️ Mesin Pabrik (Anatomi Fungsi)</h2>
+            <p>Sebuah fungsi mirip seperti mesin pembuat jus:</p>
+            <ul>
+                <li><b>Input (Bahan):</b> Buah yang dimasukkan (disebut Parameter).</li>
+                <li><b>Proses:</b> Mesin memblender buah.</li>
+                <li><b>Output (Hasil):</b> Jus yang keluar dari mesin (menggunakan perintah <code style="color:#64ffda;">return</code>).</li>
+            </ul>
+            <pre><code><span style="color:#c792ea;">def</span> <span style="color:#82aaff;">nama_mesin</span>(<span style="color:#f07178;">bahan_masuk</span>):
+    proses = bahan_masuk * 2
+    <span style="color:#c792ea;">return</span> proses <span style="color:#65737e;"># Mengeluarkan hasil</span></code></pre>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide" id="slide-4">
+            <h2>🧩 Latihan 1: Robot Penyapa</h2>
+            <p><b>Misi:</b> Ajari robot cara menyapa seseorang berdasarkan namanya.</p>
+            <p>Isilah bagian yang kosong <span class="blank">____</span> agar kode ini berfungsi!</p>
+            <pre><code><span style="color:#65737e;"># 1. Membuat kemampuan baru bernama 'sapa'</span>
+<span style="color:#c792ea;">def</span> <span style="color:#82aaff;">sapa</span>(<span class="blank">____</span>):
+    <span style="color:#65737e;"># 2. Perintah untuk mencetak sapaan di layar</span>
+    print(<span style="color:#c3e88d;">"Halo, selamat datang Kapten "</span> + <span class="blank">____</span>)
+
+<span style="color:#65737e;"># Memanggil kemampuan robot</span>
+sapa(<span style="color:#c3e88d;">"Budi"</span>)</code></pre>
+            <p style="font-size: 1.05rem; color: #ff8f00;"><i>Petunjuk: Apa nama bahan (variabel) penampung nama?</i></p>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide" id="slide-5">
+            <h2>🧩 Latihan 2: Kalkulator Energi Robot</h2>
+            <p><b>Misi:</b> Buat mesin yang mengubah angka "makanan" menjadi "energi" (dikalikan 10) lalu mengembalikan hasilnya!</p>
+            <pre><code><span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_energi</span>(makanan):
+    <span style="color:#65737e;"># Proses merubah makanan jadi energi</span>
+    energi_dihasilkan = <span class="blank">____</span> * 10
+    
+    <span style="color:#65737e;"># Mengeluarkan hasil akhir dari mesin</span>
+    <span class="blank">____</span> energi_dihasilkan
+
+<span style="color:#65737e;"># Cek hasil: Jika robot makan 5, berapa energinya?</span>
+hasil = hitung_energi(5)
+print(<span style="color:#c3e88d;">"Energi Robot:"</span>, hasil)</code></pre>
+            <p style="font-size: 1.05rem; color: #ff8f00;"><i>Petunjuk: Kata ajaib apa yang dipakai untuk 'mengeluarkan' hasil?</i></p>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide" id="slide-6">
+            <h2>🚀 Misi Mandiri (Bonus)</h2>
+            <p>Hebat! Kalian sudah bisa mengisi kode yang rumpang. Sekarang coba gabungkan logikanya di komputermu:</p>
+            <pre><code><span style="color:#c792ea;">def</span> <span style="color:#82aaff;">sapa</span>(nama):
+    print(<span style="color:#c3e88d;">"Sistem aktif! Halo,"</span>, nama)
+
+<span style="color:#c792ea;">def</span> <span style="color:#82aaff;">hitung_energi</span>(makanan):
+    <span style="color:#c792ea;">return</span> makanan * 10
+
+<span style="color:#65737e;"># --- ZONA EKSEKUSI ---</span>
+sapa(<span style="color:#c3e88d;">"Namamu Sendiri"</span>)
+energi = hitung_energi(20)
+print(<span style="color:#c3e88d;">"Energi penuh mencapai:"</span>, energi, <span style="color:#c3e88d;">"Volt"</span>)</code></pre>
+            <p>Gantilah bagian <b>"Namamu Sendiri"</b> dan angka <b>20</b> sesukamu, lalu jalankan programnya!</p>
+        </div>
+
+        <div class="controls">
+            <button id="btn-prev" onclick="changeSlide(-1)">&#9664; Sebelumnya</button>
+            <button id="btn-next" onclick="changeSlide(1)">Selanjutnya &#9654;</button>
+        </div>
+        <div class="slide-number" id="slide-counter">1 / 6</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        function notifyParent() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'slideChange',
+                    currentSlide: currentSlide + 1,
+                    totalSlides: slides.length
+                }, '*');
+            }
+        }
+
+        function updateButtons() {
+            btnPrev.disabled = currentSlide === 0;
+            btnNext.disabled = currentSlide === slides.length - 1;
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                    slide.scrollTop = 0;
+                }
+            });
+            if (counter) counter.innerText = (index + 1) + " / " + slides.length;
+            updateButtons();
+            notifyParent();
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+            showSlide(currentSlide);
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === 'Space') {
+                changeSlide(1);
+            } else if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            }
+        });
+
+        // Touch Swipe Support for Mobile
+        let touchstartX = 0;
+        let touchendX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', function(e) {
+            touchendX = e.changedTouches[0].screenX;
+            if (touchendX < touchstartX - 50) changeSlide(1);
+            if (touchendX > touchstartX + 50) changeSlide(-1);
+        }, { passive: true });
+
+        // PostMessage communication with portal
+        window.addEventListener('message', function(e) {
+            if (e.data === 'next') changeSlide(1);
+            if (e.data === 'prev') changeSlide(-1);
+            if (typeof e.data?.goToSlide === 'number') {
+                const target = Math.max(0, Math.min(slides.length - 1, e.data.goToSlide - 1));
+                currentSlide = target;
+                showSlide(currentSlide);
+            }
+        });
+        
+        updateButtons();
+        notifyParent();
+    </script>
+</body>
+</html>
+

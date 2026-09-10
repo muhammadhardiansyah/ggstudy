@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Kasir Anti-Rugi (If, Elif, Else)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0fdfa; color: #333; overflow: hidden; }
+        .slide-container { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); padding: 16px; }
+        .slide { display: none; width: 88%; max-width: 900px; height: 84%; background: #ffffff; border-radius: 20px; padding: 40px 50px; box-shadow: 0 15px 35px rgba(20, 184, 166, 0.2); border: 3px solid #5eead4; box-sizing: border-box; overflow-y: auto; }
+        .slide.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+        h1, h2 { color: #0f766e; text-shadow: none; margin-top: 0; }
+        h1 { font-size: clamp(1.8rem, 4vw, 3rem); text-align: center; margin-bottom: 20px; line-height: 1.2; font-weight: 900; color: #0f766e; }
+        h2 { font-size: clamp(1.3rem, 3vw, 2.2rem); border-bottom: 3px dashed #99f6e4; padding-bottom: 15px; margin-bottom: 20px; color: #115e59; }
+        p, li { font-size: clamp(0.95rem, 2vw, 1.3rem); line-height: 1.6; color: #334155; }
+        ul { padding-left: 24px; }
+        li { margin-bottom: 12px; }
+        pre { background-color: #1e293b; color: #f8fafc; padding: 18px; border-radius: 10px; font-family: 'Consolas', 'Courier New', monospace; font-size: clamp(0.85rem, 1.8vw, 1.15rem); overflow-x: auto; border-left: 6px solid #14b8a6; box-shadow: 0 4px 6px rgba(0,0,0,0.1); line-height: 1.55; }
+        code { color: #14b8a6; font-weight: bold; font-family: 'Consolas', monospace; }
+        .blank { display: inline-block; min-width: 60px; height: 26px; background-color: #475569; border-bottom: 3px dashed #34d399; margin: 0 4px; vertical-align: middle; color: #34d399; text-align: center; font-weight: bold; padding: 0 8px; }
+        .controls { position: absolute; bottom: 24px; width: 100%; display: flex; justify-content: center; gap: 20px; z-index: 10; }
+        button { background-color: #0d9488; color: #ffffff; border: none; padding: 12px 24px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: all 0.25s; box-shadow: 0 4px 6px rgba(13, 148, 136, 0.3); touch-action: manipulation; }
+        button:hover { background-color: #0f766e; box-shadow: 0 6px 12px rgba(15, 118, 110, 0.4); transform: translateY(-2px); }
+        button:disabled { background-color: #99f6e4; color: #fff; cursor: not-allowed; box-shadow: none; transform: none; }
+        .slide-number { position: absolute; bottom: 28px; right: 30px; font-size: 1.2rem; color: #64748b; font-weight: bold; }
+        .highlight { color: #ef4444; font-weight: bold; }
+        .info-box { background-color: #fef2f2; border-left: 5px solid #ef4444; padding: 14px 18px; border-radius: 6px; margin-top: 15px; }
+
+        @media (max-width: 768px) {
+            .slide { width: 95%; height: 84%; padding: 24px 20px; border-radius: 14px; border-width: 2px; }
+            .controls { bottom: 16px; gap: 12px; }
+            button { padding: 10px 18px; font-size: 0.95rem; }
+            .slide-number { bottom: 20px; right: 20px; font-size: 1rem; }
+            ul { padding-left: 20px; }
+            pre { padding: 12px; }
+        }
+        @media (max-width: 480px) {
+            .slide { width: 96%; height: 85%; padding: 20px 15px; }
+            .controls { bottom: 12px; gap: 10px; }
+            button { padding: 9px 14px; font-size: 0.88rem; }
+            .slide-number { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <!-- Slide 1 -->
+        <div class="slide active" id="slide-1">
+            <h1 style="margin-top: 10%;">🛡️ Sistem Kasir Anti-Rugi</h1>
+            <h2 style="text-align: center; border: none; color: #115e59; font-size: clamp(1.2rem, 2.5vw, 1.6rem);">Logika Percabangan (If, Elif, Else)</h2>
+            <p style="text-align: center; color: #ef4444; font-style: italic; font-weight: bold; font-size: clamp(1.1rem, 2vw, 1.5rem); margin-top: 30px;">Tantangan Coding: Level Boss</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="slide" id="slide-2">
+            <h2>🚨 Masalah Kritis di Kantin</h2>
+            <p>Program kasir yang kita buat sebelumnya punya <b>kelemahan besar</b>!</p>
+            <p>Coba bayangkan: Total tagihan Rp 30.000, tapi pembeli hanya membayar Rp 10.000.</p>
+            <p>Apa yang terjadi jika program tetap menjalankan <code>kembalian = uang - tagihan</code>?</p>
+            <div class="info-box">
+                <p style="margin: 0;">Hasilnya: <b>Kembalian = -20.000 (Minus!)</b><br>Kantin akan bangkrut karena komputer tidak bisa menolak uang yang kurang! Kita butuh program yang bisa <b>mengambil keputusan</b>.</p>
+            </div>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="slide" id="slide-3">
+            <h2>🚦 Lampu Lalu Lintas Pemrograman</h2>
+            <p>Di Python, kita bisa mengajari komputer mengambil keputusan menggunakan 3 kata ajaib:</p>
+            <ul>
+                <li><code style="color:#ef4444;">if</code> <b>(JIKA):</b> Kondisi pertama. <i>"Jika uangnya kurang, tolak!"</i></li>
+                <li><code style="color:#f59e0b;">elif</code> <b>(ATAU JIKA):</b> Kondisi kedua. <i>"Atau jika uangnya pas, bilang terima kasih!"</i></li>
+                <li><code style="color:#10b981;">else</code> <b>(SELAIN ITU):</b> Jika semua kondisi di atas tidak cocok. <i>"Selain itu (berarti uangnya lebih), hitung kembalian."</i></li>
+            </ul>
+        </div>
+
+        <!-- Slide 4 -->
+        <div class="slide" id="slide-4">
+            <h2>🧩 Latihan 1: Kasir Cerdas</h2>
+            <p><b>Misi:</b> Lengkapi logika dan simbol perbandingan (<code>&lt;</code>, <code>&gt;</code>, atau <code>==</code>).</p>
+            <p><i>Ingat: <code>&lt;</code> artinya Lebih Kecil, <code>==</code> artinya Sama Dengan.</i></p>
+            <pre><code>uang_pembeli = int(input(<span style="color:#c3e88d;">"Uang: "</span>))
+tagihan = 30000
+
+<span style="color:#65737e;"># Kondisi 1: Uang lebih KECIL dari tagihan</span>
+<span style="color:#c792ea;">if</span> uang_pembeli <span class="blank">____</span> tagihan:
+    print(<span style="color:#c3e88d;">"Maaf, uang Anda kurang!"</span>)
+
+<span style="color:#65737e;"># Kondisi 2: Uang SAMA DENGAN tagihan</span>
+<span class="blank">____</span> uang_pembeli <span class="blank">____</span> tagihan:
+    print(<span style="color:#c3e88d;">"Terima kasih, uangnya pas!"</span>)
+
+<span style="color:#65737e;"># Kondisi 3: Uang LEBIH (Sisa kemungkinan)</span>
+<span class="blank">____</span>:
+    kembalian = uang_pembeli - tagihan
+    print(<span style="color:#c3e88d;">"Kembalian:", kembalian</span>)</code></pre>
+        </div>
+
+        <!-- Slide 5 -->
+        <div class="slide" id="slide-5">
+            <h2>🧩 Latihan 2: Sistem Diskon 10%</h2>
+            <p><b>Misi Ekstra:</b> Berikan diskon 10% HANYA JIKA belanjanya <b>LEBIH DARI</b> 50.000!</p>
+            <p>Lengkapi operator <code>&gt;</code> dan matematika diskon di bawah ini.</p>
+            <pre><code>tagihan = int(input(<span style="color:#c3e88d;">"Total Belanja: "</span>))
+
+<span style="color:#65737e;"># Cek apakah tagihan LEBIH BESAR dari 50.000</span>
+<span style="color:#c792ea;">if</span> tagihan <span class="blank">____</span> 50000:
+    print(<span style="color:#c3e88d;">"Hore! Dapat diskon 10%"</span>)
+    
+    <span style="color:#65737e;"># Hitung diskon: (tagihan dikali 10) dibagi 100</span>
+    potongan = (tagihan * <span class="blank">____</span>) / <span class="blank">____</span>
+    
+    <span style="color:#65737e;"># Kurangi tagihan awal dengan potongan diskon</span>
+    total_akhir = tagihan - <span class="blank">____</span>
+    
+    print(<span style="color:#c3e88d;">"Cukup bayar:"</span>, total_akhir)
+<span style="color:#c792ea;">else</span>:
+    print(<span style="color:#c3e88d;">"Tidak ada diskon. Bayar:"</span>, tagihan)</code></pre>
+        </div>
+
+        <!-- Slide 6 -->
+        <div class="slide" id="slide-6">
+            <h2>🚀 Kode Bos: Kasir Anti-Rugi & Promo</h2>
+            <p>Gabungan semuanya! Cobalah masukkan belanja Rp 60.000 (dapat diskon), lalu bayar dengan uang Rp 10.000 (uang ditolak!).</p>
+            <pre style="font-size: clamp(0.75rem, 1.6vw, 0.95rem);"><code>print(<span style="color:#c3e88d;">"=== KANTIN PINTAR ==="</span>)
+tagihan = int(input(<span style="color:#c3e88d;">"Berapa total tagihan? Rp "</span>))
+
+<span style="color:#65737e;"># Sistem Diskon</span>
+<span style="color:#c792ea;">if</span> tagihan > 50000:
+    potongan = (tagihan * 10) / 100
+    tagihan = tagihan - potongan
+    print(<span style="color:#c3e88d;">"Dapat Diskon 10%! Tagihan baru: Rp"</span>, tagihan)
+
+<span style="color:#65737e;"># Sistem Anti-Rugi (Pembayaran)</span>
+uang = int(input(<span style="color:#c3e88d;">"Masukkan uang pembayaran: Rp "</span>))
+
+<span style="color:#c792ea;">if</span> uang < tagihan:
+    kurang = tagihan - uang
+    print(<span style="color:#c3e88d;">"TRANSAKSI GAGAL! Uang kurang Rp"</span>, kurang)
+<span style="color:#c792ea;">elif</span> uang == tagihan:
+    print(<span style="color:#c3e88d;">"Uang pas! Terima kasih."</span>)
+<span style="color:#c792ea;">else</span>:
+    kembali = uang - tagihan
+    print(<span style="color:#c3e88d;">"Transaksi sukses! Kembalian: Rp"</span>, kembali)</code></pre>
+        </div>
+
+        <div class="controls">
+            <button id="btn-prev" onclick="changeSlide(-1)">&#9664; Sebelumnya</button>
+            <button id="btn-next" onclick="changeSlide(1)">Selanjutnya &#9654;</button>
+        </div>
+        <div class="slide-number" id="slide-counter">1 / 6</div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const counter = document.getElementById('slide-counter');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        function notifyParent() {
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'slideChange',
+                    currentSlide: currentSlide + 1,
+                    totalSlides: slides.length
+                }, '*');
+            }
+        }
+
+        function updateButtons() {
+            btnPrev.disabled = currentSlide === 0;
+            btnNext.disabled = currentSlide === slides.length - 1;
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active');
+                if (i === index) {
+                    slide.classList.add('active');
+                    slide.scrollTop = 0;
+                }
+            });
+            if (counter) counter.innerText = (index + 1) + " / " + slides.length;
+            updateButtons();
+            notifyParent();
+        }
+
+        function changeSlide(direction) {
+            currentSlide += direction;
+            if (currentSlide < 0) currentSlide = 0;
+            if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+            showSlide(currentSlide);
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowRight' || event.key === 'Space') {
+                changeSlide(1);
+            } else if (event.key === 'ArrowLeft') {
+                changeSlide(-1);
+            }
+        });
+
+        // Touch Swipe Support for Mobile
+        let touchstartX = 0;
+        let touchendX = 0;
+        document.addEventListener('touchstart', function(e) {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        document.addEventListener('touchend', function(e) {
+            touchendX = e.changedTouches[0].screenX;
+            if (touchendX < touchstartX - 50) changeSlide(1);
+            if (touchendX > touchstartX + 50) changeSlide(-1);
+        }, { passive: true });
+
+        // PostMessage communication with portal
+        window.addEventListener('message', function(e) {
+            if (e.data === 'next') changeSlide(1);
+            if (e.data === 'prev') changeSlide(-1);
+            if (typeof e.data?.goToSlide === 'number') {
+                const target = Math.max(0, Math.min(slides.length - 1, e.data.goToSlide - 1));
+                currentSlide = target;
+                showSlide(currentSlide);
+            }
+        });
+        
+        updateButtons();
+        notifyParent();
+    </script>
+</body>
+</html>
+
