@@ -33,3 +33,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# agents, notes, and planning documents (only README.md stays in git)
+.agents/
+AGENTS.md
+implementation_plan.md
+DESIGN.md
+PANDUAN_TAMBAH_MATERI.md
