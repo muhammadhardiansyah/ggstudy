@@ -1,12 +1,13 @@
 {
   "name": "gg-study",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "version": "node scripts/bump-version.js"
   },
   "dependencies": {
     "lucide-react": "^0.475.0",
@@ -24,4 +25,3 @@
     "typescript": "^5.7.3"
   }
 }
-
