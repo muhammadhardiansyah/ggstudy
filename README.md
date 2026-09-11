@@ -38,42 +38,31 @@ Dibangun dengan **Next.js (App Router)**, **TypeScript**, dan **Tailwind CSS**, 
 
 ---
 
-## Cara Menambahkan Materi Baru
+## Cara Menambahkan & Mengelola Materi Melalui Form Admin (/admin)
 
-1. Letakkan file presentasi HTML baru Anda di dalam folder:
+Tidak perlu lagi mengedit kode atau JSON secara manual. Anda dapat mengunggah dan mengelola materi langsung melalui portal admin lokal:
+
+1. Jalankan server lokal:
+   ```bash
+   npm run dev
+   ```
+2. Buka URL rahasia di browser:
    ```text
-   public/materials/Nama_Materi_Baru.html
+   http://localhost:3000/admin
    ```
-2. Buka `src/data/materials.ts` dan tambahkan satu entri objek baru ke dalam array `materials`:
-   ```typescript
-   {
-     id: "slug-unik",
-     slug: "slug-unik",
-     orderNumber: "05",
-     title: "Judul Materi Anda",
-     subtitle: "Sub Judul Singkat",
-     description: "Deskripsi singkat mengenai topik materi.",
-     category: "Kategori Materi",
-     level: "Pemula", // "Pemula" | "Menengah" | "Lanjut"
-     slideCount: 6,
-     estimatedMinutes: 20,
-     fileName: "Nama_Materi_Baru.html",
-     topics: ["Topik 1", "Topik 2"],
-     slide1: {
-       emoji: "🚀",
-       bgGradient: "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
-       borderColor: "#d4a373",
-       titleColor: "#cc8b56",
-       subtitleColor: "#a98467",
-       tagColor: "#ef233c",
-       tagText: "Tantangan Coding Baru",
-     },
-   }
-   ```
-3. Commit dan push ke GitHub:
+3. Masuk dengan akun pengajar:
+   - **Username**: `admin`
+   - **Password**: `admin123`
+4. Di dashboard admin, Anda dapat:
+   - **Upload File HTML**: Pilih file `.html` presentasi, isi judul, kategori, tingkat kesulitan, dan topik.
+   - **Deteksi Otomatis Slide**: Sistem langsung membaca jumlah slide di presentasi Anda.
+   - **Kustomisasi Kartu Slide 1**: Pilih preset warna pastel dan emoji dengan pratinjau langsung sebelum disimpan.
+   - **Hapus Materi**: Hapus modul lama secara instan (otomatis menghapus entri dan berkas fisik).
+5. Setelah menambah atau menghapus materi di komputer lokal, lakukan deploy ke Vercel dengan menjalankan:
    ```bash
    git add .
-   git commit -m "feat: Tambah materi baru"
+   git commit -m "update materi"
    git push origin main
    ```
-   Vercel akan secara otomatis memperbarui website dalam beberapa detik!
+   Website Vercel akan otomatis melakukan auto-deploy!
+
