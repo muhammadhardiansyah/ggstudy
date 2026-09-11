@@ -138,5 +138,59 @@
       "tagColor": "#ef233c",
       "tagText": "Tantangan Coding: Level Lanjut (Advanced)"
     }
+  },
+  {
+    "id": "game-tebak-angka",
+    "slug": "game-tebak-angka",
+    "orderNumber": "06",
+    "title": "Game Tebak Angka",
+    "subtitle": "Perulangan Tanpa Henti (While True)",
+    "description": "Untuk membuat program terus mengulang, kita menggunakan mantra while True: (Selama kondisinya Benar, ulangi terus!).",
+    "category": "Logika & Percabangan",
+    "level": "Lanjut",
+    "slideCount": 8,
+    "estimatedMinutes": 30,
+    "fileName": "Presentasi_Tebak_Angka_WhileTrue.html",
+    "topics": [
+      "looping",
+      "library random",
+      "input"
+    ],
+    "slide1": {
+      "emoji": "🎮",
+      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
+      "borderColor": "#d4a373",
+      "titleColor": "#cc8b56",
+      "subtitleColor": "#a98467",
+      "tagColor": "#ef233c",
+      "tagText": "Tantangan Coding: Level Lanjut"
+    }
+  },
+  {
+    "id": "peta-harta-karun-piksel",
+    "slug": "peta-harta-karun-piksel",
+    "orderNumber": "07",
+    "title": "Peta Harta Karun Piksel",
+    "subtitle": "Mengenal List 2 Dimensi (Grid)",
+    "description": "Tahukah kamu? Komputer tidak punya mata! Saat komputer melihat sebuah gambar (atau mendeteksi wajah), mereka sebenarnya sedang melihat angka-angka di dalam kotak-kotak kecil yang disebut Piksel.",
+    "category": "Fondasi Pemrograman",
+    "level": "Lanjut",
+    "slideCount": 9,
+    "estimatedMinutes": 30,
+    "fileName": "Presentasi_List_2D_Piksel.html",
+    "topics": [
+      "list",
+      "matrics",
+      "position"
+    ],
+    "slide1": {
+      "emoji": "💻",
+      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      "borderColor": "#4dd0e1",
+      "titleColor": "#00838f",
+      "subtitleColor": "#006064",
+      "tagColor": "#ff8f00",
+      "tagText": "Tantangan Coding: Level Lanjut"
+    }
   }
 ]
