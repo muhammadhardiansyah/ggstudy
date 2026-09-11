@@ -121,6 +121,7 @@ export default function AdminPage() {
 
   // Form submission feedback
   const [uploadSubmitting, setUploadSubmitting] = useState(false);
+  const [generatingAi, setGeneratingAi] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Delete modal confirmation
@@ -330,6 +331,71 @@ export default function AdminPage() {
       setNotification({ type: "error", message: "Terjadi gangguan saat mengunggah materi" });
     } finally {
       setUploadSubmitting(false);
+    }
+  }
+
+  async function handleGenerateWithAi() {
+    if (!selectedFile) {
+      setNotification({
+        type: "error",
+        message: "Silakan pilih file presentasi (.html) terlebih dahulu untuk dianalisis oleh AI.",
+      });
+      return;
+    }
+
+    setGeneratingAi(true);
+    setNotification(null);
+
+    try {
+      const htmlContent = await selectedFile.text();
+      const res = await fetch("/api/admin/generate-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          htmlContent,
+          fileName: selectedFile.name,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.metadata) {
+        const meta = data.metadata;
+        if (meta.title) setTitle(meta.title);
+        if (meta.subtitle) setSubtitle(meta.subtitle);
+        if (meta.description) setDescription(meta.description);
+        if (meta.category) setCategory(meta.category);
+        if (meta.level) setLevel(meta.level);
+        if (meta.estimatedMinutes) setEstimatedMinutes(meta.estimatedMinutes);
+        if (meta.topics) {
+          setTopics(Array.isArray(meta.topics) ? meta.topics.join(", ") : meta.topics);
+        }
+        if (meta.slideCount) {
+          setSlideCount(meta.slideCount);
+          setDetectedSlideCount(meta.slideCount);
+        }
+        if (meta.emoji) setEmoji(meta.emoji);
+        if (typeof meta.colorPresetIndex === "number" && COLOR_PRESETS[meta.colorPresetIndex]) {
+          applyColorPreset(COLOR_PRESETS[meta.colorPresetIndex]);
+        }
+        if (meta.tagText) setTagText(meta.tagText);
+
+        setNotification({
+          type: "success",
+          message: "✨ Berhasil! Judul, kategori, topik, emoji, dan tema warna telah diisi otomatis oleh Gemini AI berdasarkan isi slide presentasi Anda.",
+        });
+      } else {
+        setNotification({
+          type: "error",
+          message: data.error || "Gagal menghasilkan isian form dengan AI",
+        });
+      }
+    } catch {
+      setNotification({
+        type: "error",
+        message: "Terjadi kesalahan saat menghubungi layanan AI",
+      });
+    } finally {
+      setGeneratingAi(false);
     }
   }
 
@@ -737,6 +803,47 @@ export default function AdminPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* AI Auto-Fill Action Card */}
+              <div className="bg-gradient-to-r from-[#ffe8d6] via-[#fefae0] to-[#e0f7fa] p-4 rounded-2xl border-2 border-[#d4a373]/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white text-[#cc8b56] flex items-center justify-center shadow-xs shrink-0 border border-[#d4a373]/30">
+                    <Sparkles className={`w-5 h-5 text-[#cc8b56] ${generatingAi ? "animate-spin" : "animate-pulse"}`} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-black text-[#cc8b56] flex items-center gap-1.5">
+                      <span>Generate Isian dengan Gemini AI</span>
+                      <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#cc8b56] text-white">
+                        AI
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-[#a98467] leading-relaxed">
+                      {selectedFile
+                        ? "Klik tombol di samping agar AI membaca isi file presentasi dan mengisi seluruh form secara otomatis."
+                        : "Pilih file presentasi .html di atas terlebih dahulu untuk mengaktifkan AI."}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={generatingAi || !selectedFile}
+                  onClick={handleGenerateWithAi}
+                  className="self-stretch sm:self-auto px-4 py-2.5 bg-[#cc8b56] hover:bg-[#b87642] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                >
+                  {generatingAi ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Menganalisis Slide...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Generate dengan AI</span>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Title & Subtitle */}

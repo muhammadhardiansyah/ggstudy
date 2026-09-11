@@ -167,9 +167,38 @@
     }
   },
   {
+    "id": "duel-hero-vs-boss",
+    "slug": "duel-hero-vs-boss",
+    "orderNumber": "07",
+    "title": "Duel Hero vs Boss",
+    "subtitle": "Perulangan, Random, & Kondisi",
+    "description": "Buat simulasi pertarungan seru antara Hero dan Boss! Pelajari cara kerja perulangan, angka acak, dan kondisi untuk menentukan pemenang.",
+    "category": "Logika & Percabangan",
+    "level": "Lanjut",
+    "slideCount": 8,
+    "estimatedMinutes": 30,
+    "fileName": "Presentasi_Simulasi_Battle_1v1.html",
+    "topics": [
+      "while loop",
+      "if-elif",
+      "library random",
+      "variabel dinamis",
+      "break statement"
+    ],
+    "slide1": {
+      "emoji": "🤖",
+      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      "borderColor": "#4dd0e1",
+      "titleColor": "#00838f",
+      "subtitleColor": "#006064",
+      "tagColor": "#ff8f00",
+      "tagText": "Tantangan Coding: Level Lanjut"
+    }
+  },
+  {
     "id": "peta-harta-karun-piksel",
     "slug": "peta-harta-karun-piksel",
-    "orderNumber": "07",
+    "orderNumber": "08",
     "title": "Peta Harta Karun Piksel",
     "subtitle": "Mengenal List 2 Dimensi (Grid)",
     "description": "Tahukah kamu? Komputer tidak punya mata! Saat komputer melihat sebuah gambar (atau mendeteksi wajah), mereka sebenarnya sedang melihat angka-angka di dalam kotak-kotak kecil yang disebut Piksel.",
