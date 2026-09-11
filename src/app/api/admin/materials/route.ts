@@ -148,6 +148,7 @@ export async function POST(request: Request) {
       estimatedMinutes: isNaN(estimatedMinutes) ? 20 : estimatedMinutes,
       fileName: targetFileName,
       topics: topics.length > 0 ? topics : ["Python", category],
+      isLocked: (formData.get("isLocked") as string) === "true",
       slide1: {
         emoji,
         bgGradient,
@@ -284,5 +285,46 @@ export async function PUT(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+    return NextResponse.json({ error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." }, { status: 403 });
+  }
+
+  try {
+    const body = await request.json();
+    const { id, isLocked } = body as { id: string; isLocked?: boolean };
+
+    if (!id) {
+      return NextResponse.json({ error: "ID materi diperlukan" }, { status: 400 });
+    }
+
+    const currentMaterials = await loadMaterials();
+    const target = currentMaterials.find((m) => m.id === id || m.slug === id);
+
+    if (!target) {
+      return NextResponse.json({ error: "Materi tidak ditemukan" }, { status: 404 });
+    }
+
+    if (typeof isLocked === "boolean") {
+      target.isLocked = isLocked;
+    }
+
+    await saveMaterials(currentMaterials);
+
+    return NextResponse.json({
+      success: true,
+      message: `Status materi "${target.title}" berhasil diubah menjadi ${target.isLocked ? "Terkunci" : "Terbuka"}.`,
+      materials: currentMaterials,
+      material: target,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message || "Gagal memperbarui status materi" },
+      { status: 500 }
+    );
+  }
+}
+
 
 

@@ -5,7 +5,7 @@ import { Metadata } from "next";
 import { materials, getMaterialBySlug } from "@/data/materials";
 import { SlideViewer } from "@/components/SlideViewer";
 import { LevelBadge } from "@/components/LevelBadge";
-import { Clock, Layers } from "lucide-react";
+import { Clock, Layers, Lock, ArrowLeft } from "lucide-react";
 
 interface Props {
   params: {
@@ -38,6 +38,40 @@ export default function MaterialDetailPage({ params }: Props) {
 
   if (!material) {
     notFound();
+  }
+
+  // Restricted Access: If module is locked by instructor
+  if (material.isLocked) {
+    return (
+      <div className="min-h-[65vh] flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-lg bg-white rounded-3xl border-2 border-amber-200 p-7 sm:p-9 shadow-[0_10px_35px_rgba(212,163,115,0.15)] space-y-6 text-center">
+          <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-amber-200">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200 text-[11px] font-black tracking-wider uppercase">
+              Modul Belum Dibuka
+            </span>
+            <h1 className="text-xl sm:text-2xl font-black text-[#cc8b56] tracking-tight">
+              {material.title}
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 max-w-sm mx-auto leading-relaxed">
+              Materi pembelajaran ini saat ini masih dikunci oleh pengajar. Silakan selesaikan modul sebelumnya atau tunggu arahan dari pengajar untuk membuka modul ini.
+            </p>
+          </div>
+
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2.5 bg-[#cc8b56] hover:bg-[#b87642] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Modul
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -149,6 +183,10 @@ export default function MaterialDetailPage({ params }: Props) {
                     {isCurrent ? (
                       <span className="text-[10px] font-bold text-[#ffe8d6] shrink-0">
                         Aktif
+                      </span>
+                    ) : m.isLocked ? (
+                      <span className="text-[10px] text-amber-600 font-bold shrink-0 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Terkunci
                       </span>
                     ) : (
                       <span className="text-[10px] text-[#a98467] shrink-0">

@@ -24,4 +24,5 @@ export interface MaterialItem {
   fileName: string;
   topics: string[];
   slide1?: Slide1Theme;
+  isLocked?: boolean;
 }

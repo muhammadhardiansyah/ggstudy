@@ -164,7 +164,8 @@
       "subtitleColor": "#a98467",
       "tagColor": "#ef233c",
       "tagText": "Tantangan Coding: Level Lanjut"
-    }
+    },
+    "isLocked": true
   },
   {
     "id": "duel-hero-vs-boss",
@@ -193,7 +194,8 @@
       "subtitleColor": "#006064",
       "tagColor": "#ff8f00",
       "tagText": "Tantangan Coding: Level Lanjut"
-    }
+    },
+    "isLocked": true
   },
   {
     "id": "peta-harta-karun-piksel",
@@ -220,6 +222,7 @@
       "subtitleColor": "#006064",
       "tagColor": "#ff8f00",
       "tagText": "Tantangan Coding: Level Lanjut"
-    }
+    },
+    "isLocked": true
   }
 ]

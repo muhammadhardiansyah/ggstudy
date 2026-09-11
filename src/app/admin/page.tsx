@@ -19,6 +19,8 @@ import {
   PlusCircle,
   Eye,
   Lock,
+  Unlock,
+  Loader2,
   GripVertical,
   ChevronUp,
   ChevronDown,
@@ -127,6 +129,9 @@ export default function AdminPage() {
   // Delete modal confirmation
   const [deletingMaterial, setDeletingMaterial] = useState<MaterialItem | null>(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  // Toggle lock state
+  const [togglingLockId, setTogglingLockId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -396,6 +401,43 @@ export default function AdminPage() {
       });
     } finally {
       setGeneratingAi(false);
+    }
+  }
+
+  async function handleToggleLock(item: MaterialItem) {
+    const newStatus = !item.isLocked;
+    setTogglingLockId(item.id);
+
+    // Optimistic UI update
+    setMaterials((prev) =>
+      prev.map((m) => (m.id === item.id ? { ...m, isLocked: newStatus } : m))
+    );
+
+    try {
+      const res = await fetch("/api/admin/materials", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          isLocked: newStatus,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotification({
+          type: "success",
+          message: `Materi "${item.title}" sekarang ${newStatus ? "TERKUNCI (siswa tidak bisa mengakses)" : "TERBUKA (dapat diakses siswa)"}.`,
+        });
+      } else {
+        setNotification({ type: "error", message: data.error || "Gagal mengubah status lock" });
+        await fetchMaterials();
+      }
+    } catch {
+      setNotification({ type: "error", message: "Gagal memperbarui status materi" });
+      await fetchMaterials();
+    } finally {
+      setTogglingLockId(null);
     }
   }
 
@@ -1211,7 +1253,7 @@ export default function AdminPage() {
 
                     {/* Module Info */}
                     <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-black text-[#cc8b56]">
                           MODUL {item.orderNumber}
                         </span>
@@ -1220,6 +1262,11 @@ export default function AdminPage() {
                           {item.category}
                         </span>
                         <LevelBadge level={item.level} />
+                        {item.isLocked && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1">
+                            <Lock className="w-2.5 h-2.5" /> Terkunci
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-sm font-bold text-[#333] truncate">
                         {item.title}
@@ -1243,6 +1290,30 @@ export default function AdminPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                    <button
+                      onClick={() => handleToggleLock(item)}
+                      disabled={togglingLockId === item.id}
+                      title={item.isLocked ? "Klik untuk membuka modul bagi siswa" : "Klik untuk mengunci modul dari siswa"}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                        item.isLocked
+                          ? "bg-amber-100 hover:bg-amber-200 text-amber-900 border-amber-300 shadow-xs"
+                          : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200"
+                      }`}
+                    >
+                      {togglingLockId === item.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : item.isLocked ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Terkunci</span>
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Terbuka</span>
+                        </>
+                      )}
+                    </button>
                     <Link
                       href={`/materi/${item.slug}`}
                       target="_blank"
