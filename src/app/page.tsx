@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Search, X } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { materials } from "@/data/materials";
 import { DifficultyLevel } from "@/types/material";
 import { MaterialCard } from "@/components/MaterialCard";
 
+const ITEMS_PER_PAGE = 6;
+
 export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<DifficultyLevel | "Semua">("Semua");
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filter materials based on search and level
   const filteredMaterials = useMemo(() => {
@@ -28,6 +31,28 @@ export default function HomePage() {
       return matchLevel && matchText;
     });
   }, [searchQuery, selectedLevel]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedLevel]);
+
+  // Total pages
+  const totalPages = Math.ceil(filteredMaterials.length / ITEMS_PER_PAGE);
+
+  // Paginated materials
+  const paginatedMaterials = useMemo(() => {
+    if (filteredMaterials.length <= ITEMS_PER_PAGE) {
+      return filteredMaterials;
+    }
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredMaterials.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredMaterials, currentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="space-y-6">
@@ -92,10 +117,65 @@ export default function HomePage() {
 
       {/* 2-Column Cards Grid (Compact & Fits on Screen) */}
       {filteredMaterials.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filteredMaterials.map((material) => (
-            <MaterialCard key={material.id} material={material} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {paginatedMaterials.map((material) => (
+              <MaterialCard key={material.id} material={material} />
+            ))}
+          </div>
+
+          {/* Pagination Controls (Appears when items > 6) */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-5 border-t-2 border-dashed border-[#e9edc9]">
+              <span className="text-xs text-[#a98467] font-medium order-2 sm:order-1">
+                Menampilkan <strong className="text-[#cc8b56]">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</strong> - <strong className="text-[#cc8b56]">{Math.min(currentPage * ITEMS_PER_PAGE, filteredMaterials.length)}</strong> dari <strong className="text-[#cc8b56]">{filteredMaterials.length}</strong> Modul
+              </span>
+
+              <div className="flex items-center gap-1.5 order-1 sm:order-2">
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded-xl border border-[#e9edc9] bg-white text-xs font-bold text-[#5c677d] hover:bg-[#ffe8d6] hover:text-[#cc8b56] disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                  aria-label="Halaman sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sebelumnya</span>
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                    const isCurrent = currentPage === pageNum;
+                    return (
+                      <button
+                        type="button"
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center ${
+                          isCurrent
+                            ? "bg-[#cc8b56] text-white shadow-xs"
+                            : "bg-white text-[#5c677d] hover:bg-[#ffe8d6] hover:text-[#cc8b56] border border-[#e9edc9]"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded-xl border border-[#e9edc9] bg-white text-xs font-bold text-[#5c677d] hover:bg-[#ffe8d6] hover:text-[#cc8b56] disabled:opacity-30 disabled:pointer-events-none transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                  aria-label="Halaman selanjutnya"
+                >
+                  <span className="hidden sm:inline">Selanjutnya</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border-2 border-dashed border-[#e9edc9] p-8 text-center space-y-2">
@@ -108,7 +188,7 @@ export default function HomePage() {
               setSearchQuery("");
               setSelectedLevel("Semua");
             }}
-            className="mt-2 px-4 py-1.5 rounded-xl bg-[#d4a373] text-white text-xs font-bold hover:bg-[#cc8b56] transition-colors"
+            className="mt-2 px-4 py-1.5 rounded-xl bg-[#d4a373] text-white text-xs font-bold hover:bg-[#cc8b56] transition-colors cursor-pointer"
           >
             Tampilkan Semua Materi
           </button>
