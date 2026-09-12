@@ -23,13 +23,18 @@ export function generateMetadata({ params }: Props): Metadata {
   const material = getMaterialBySlug(params.slug);
   if (!material) {
     return {
-      title: "Materi Tidak Ditemukan — GG Study",
+      title: "Materi Tidak Ditemukan | ggstudy",
     };
   }
 
   return {
-    title: `${material.title} — GG Study`,
+    title: `${material.title} | ggstudy`,
     description: `${material.subtitle}. ${material.description}`,
+    openGraph: {
+      title: `${material.title} | ggstudy`,
+      description: `${material.subtitle}. ${material.description}`,
+      siteName: "ggstudy",
+    },
   };
 }
 
