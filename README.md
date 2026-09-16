@@ -57,12 +57,7 @@ Tidak perlu lagi mengedit kode atau JSON secara manual. Anda dapat mengunggah da
    - **Upload File HTML**: Pilih file `.html` presentasi, isi judul, kategori, tingkat kesulitan, dan topik.
    - **Deteksi Otomatis Slide**: Sistem langsung membaca jumlah slide di presentasi Anda.
    - **Kustomisasi Kartu Slide 1**: Pilih preset warna pastel dan emoji dengan pratinjau langsung sebelum disimpan.
-   - **Hapus Materi**: Hapus modul lama secara instan (otomatis menghapus entri dan berkas fisik).
-5. Setelah menambah atau menghapus materi di komputer lokal, lakukan deploy ke Vercel dengan menjalankan:
-   ```bash
-   git add .
-   git commit -m "update materi"
-   git push origin main
-   ```
-   Website Vercel akan otomatis melakukan auto-deploy!
-
+   - **Hapus Materi**: Hapus modul lama secara instan dari database dan penyimpanan.
+5. **Penyimpanan Real-Time Online**:
+   - Seluruh materi baru yang diunggah akan langsung tersimpan di **Vercel Blob Storage**, dan metadata beserta status kuncinya tersimpan di database **Neon PostgreSQL**.
+   - Perubahan langsung aktif secara *real-time* di website online tanpa memerlukan proses redeploy manual.

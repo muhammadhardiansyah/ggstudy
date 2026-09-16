@@ -14,8 +14,6 @@ import {
   Layers,
   Clock,
   ArrowLeft,
-  Copy,
-  Check,
   PlusCircle,
   Eye,
   Lock,
@@ -92,7 +90,6 @@ export default function AdminPage() {
   // Dashboard state
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [activeTab, setActiveTab] = useState<"upload" | "list">("upload");
-  const [copiedGit, setCopiedGit] = useState(false);
 
   // Drag and drop reordering state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -537,12 +534,6 @@ export default function AdminPage() {
     }
   }
 
-  function copyGitCommand() {
-    navigator.clipboard.writeText('git add . && git commit -m "update materi" && git push');
-    setCopiedGit(true);
-    setTimeout(() => setCopiedGit(false), 2000);
-  }
-
   if (loadingAuth) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -660,28 +651,6 @@ export default function AdminPage() {
             className="text-xs font-bold text-[#a98467] hover:text-red-600 bg-white hover:bg-red-50 px-3 py-1.5 rounded-xl border border-[#e8e1d5] hover:border-red-200 transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" /> Keluar
-          </button>
-        </div>
-      </div>
-
-      {/* Git Push Reminder Banner */}
-      <div className="bg-[#fefae0] border-2 border-[#e9edc9] rounded-2xl p-4 sm:p-5 text-xs text-[#5c677d] space-y-2 shadow-xs">
-        <div className="flex items-center gap-2 text-[#cc8b56] font-bold text-sm">
-          <Sparkles className="w-4 h-4 text-[#d4a373]" />
-          Alur Local-First &amp; Deploy Vercel
-        </div>
-        <p className="leading-relaxed">
-          Semua perubahan (upload dan hapus materi) langsung tersimpan di komputer lokal Anda.
-          Untuk menerapkan materi baru ke website online (Vercel), cukup jalankan perintah git berikut di terminal:
-        </p>
-        <div className="flex items-center justify-between bg-white border border-[#d4a373]/40 rounded-xl px-3 py-2 font-mono text-[11px] text-[#cc8b56]">
-          <span className="truncate">git add . && git commit -m &quot;update materi&quot; && git push</span>
-          <button
-            onClick={copyGitCommand}
-            className="ml-2 px-2.5 py-1 rounded-lg bg-[#ffe8d6] hover:bg-[#ffd9b8] text-[#cc8b56] font-bold font-sans text-[10px] flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-          >
-            {copiedGit ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
-            {copiedGit ? "Disalin!" : "Salin"}
           </button>
         </div>
       </div>
