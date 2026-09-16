@@ -2,7 +2,15 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
+import { put, del } from "@vercel/blob";
 import { MaterialItem } from "@/types/material";
+import {
+  getAllMaterials,
+  upsertMaterial,
+  updateMaterialLock,
+  updateMaterialsOrder,
+  deleteMaterial,
+} from "@/lib/db";
 
 function isLocalhostRequest(request: Request): boolean {
   const host = request.headers.get("host") || "";
@@ -20,23 +28,6 @@ function isAuthenticated(): boolean {
   return session?.value === "ggstudy_authenticated_admin_ok";
 }
 
-function getMaterialsPath(): string {
-  return path.join(process.cwd(), "src", "data", "materials.json");
-}
-
-async function loadMaterials(): Promise<MaterialItem[]> {
-  try {
-    const raw = await fs.readFile(getMaterialsPath(), "utf-8");
-    return JSON.parse(raw);
-  } catch (err) {
-    return [];
-  }
-}
-
-async function saveMaterials(items: MaterialItem[]): Promise<void> {
-  await fs.writeFile(getMaterialsPath(), JSON.stringify(items, null, 2), "utf-8");
-}
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -47,13 +38,16 @@ function slugify(text: string): string {
 }
 
 export async function GET() {
-  const materials = await loadMaterials();
+  const materials = await getAllMaterials();
   return NextResponse.json(materials);
 }
 
 export async function POST(request: Request) {
   if (!isLocalhostRequest(request) || !isAuthenticated()) {
-    return NextResponse.json({ error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -70,7 +64,9 @@ export async function POST(request: Request) {
 
     // Slide 1 Customizer
     const emoji = (formData.get("emoji") as string)?.trim() || "📘";
-    const bgGradient = (formData.get("bgGradient") as string) || "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)";
+    const bgGradient =
+      (formData.get("bgGradient") as string) ||
+      "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)";
     const borderColor = (formData.get("borderColor") as string) || "#d4a373";
     const titleColor = (formData.get("titleColor") as string) || "#cc8b56";
     const subtitleColor = (formData.get("subtitleColor") as string) || "#a98467";
@@ -101,7 +97,7 @@ export async function POST(request: Request) {
       detectedSlideCount = slideMatches && slideMatches.length > 0 ? slideMatches.length : 6;
     }
 
-    const currentMaterials = await loadMaterials();
+    const currentMaterials = await getAllMaterials();
 
     // Generate unique slug
     let baseSlug = slugify(title);
@@ -122,10 +118,28 @@ export async function POST(request: Request) {
       targetFileName = `Presentasi_${targetFileName}`;
     }
 
-    // Save uploaded HTML file to public/materials
-    const materialsDir = path.join(process.cwd(), "public", "materials");
-    await fs.mkdir(materialsDir, { recursive: true });
-    await fs.writeFile(path.join(materialsDir, targetFileName), fileBuffer);
+    // 1. Upload to Vercel Blob (if token exists)
+    let blobUrl: string | undefined = undefined;
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        const blob = await put(`materials/${targetFileName}`, fileBuffer, {
+          access: "public",
+          contentType: "text/html",
+        });
+        blobUrl = blob.url;
+      } catch (blobError) {
+        console.error("Peringatan: Gagal upload ke Vercel Blob:", blobError);
+      }
+    }
+
+    // 2. Also save to local public/materials folder as local fallback
+    try {
+      const materialsDir = path.join(process.cwd(), "public", "materials");
+      await fs.mkdir(materialsDir, { recursive: true });
+      await fs.writeFile(path.join(materialsDir, targetFileName), fileBuffer);
+    } catch (fsErr) {
+      console.error("Peringatan: Gagal menyimpan file fisik lokal:", fsErr);
+    }
 
     // Parse topics
     const topics = topicsRaw
@@ -147,6 +161,7 @@ export async function POST(request: Request) {
       slideCount: detectedSlideCount,
       estimatedMinutes: isNaN(estimatedMinutes) ? 20 : estimatedMinutes,
       fileName: targetFileName,
+      blobUrl,
       topics: topics.length > 0 ? topics : ["Python", category],
       isLocked: (formData.get("isLocked") as string) === "true",
       slide1: {
@@ -160,8 +175,8 @@ export async function POST(request: Request) {
       },
     };
 
-    currentMaterials.push(newMaterial);
-    await saveMaterials(currentMaterials);
+    // 3. Save metadata to Neon DB (and synced to local JSON)
+    await upsertMaterial(newMaterial);
 
     return NextResponse.json({
       success: true,
@@ -178,7 +193,10 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   if (!isLocalhostRequest(request) || !isAuthenticated()) {
-    return NextResponse.json({ error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -194,34 +212,35 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "ID materi diperlukan" }, { status: 400 });
     }
 
-    const currentMaterials = await loadMaterials();
-    const targetMaterial = currentMaterials.find((m) => m.id === id || m.slug === id);
+    // 1. Delete from Neon DB
+    const deletedMaterial = await deleteMaterial(id);
 
-    if (!targetMaterial) {
+    if (!deletedMaterial) {
       return NextResponse.json({ error: "Materi tidak ditemukan" }, { status: 404 });
     }
 
-    // Filter out deleted material
-    const updatedMaterials = currentMaterials.filter((m) => m.id !== id && m.slug !== id);
+    // 2. Delete from Vercel Blob (if blobUrl and token exist)
+    if (deletedMaterial.blobUrl && process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        await del(deletedMaterial.blobUrl);
+      } catch (blobErr) {
+        console.error("Gagal menghapus file dari Vercel Blob:", blobErr);
+      }
+    }
 
-    // Re-sequence orderNumber (01, 02, ...)
-    updatedMaterials.forEach((item, index) => {
-      item.orderNumber = (index + 1).toString().padStart(2, "0");
-    });
-
-    // Delete html file from public/materials if exists
+    // 3. Delete local html file from public/materials if exists
     try {
-      const filePath = path.join(process.cwd(), "public", "materials", targetMaterial.fileName);
+      const filePath = path.join(process.cwd(), "public", "materials", deletedMaterial.fileName);
       await fs.unlink(filePath);
     } catch {
       // Ignore if file was already missing
     }
 
-    await saveMaterials(updatedMaterials);
+    const updatedMaterials = await getAllMaterials();
 
     return NextResponse.json({
       success: true,
-      message: `Materi "${targetMaterial.title}" berhasil dihapus.`,
+      message: `Materi "${deletedMaterial.title}" berhasil dihapus.`,
       materials: updatedMaterials,
     });
   } catch (error: any) {
@@ -234,7 +253,10 @@ export async function DELETE(request: Request) {
 
 export async function PUT(request: Request) {
   if (!isLocalhostRequest(request) || !isAuthenticated()) {
-    return NextResponse.json({ error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -248,30 +270,8 @@ export async function PUT(request: Request) {
       );
     }
 
-    const currentMaterials = await loadMaterials();
-    const materialMap = new Map(currentMaterials.map((m) => [m.id, m]));
-
-    // Reconstruct list in the new order
-    const updatedMaterials: MaterialItem[] = [];
-    for (const id of orderedIds) {
-      const item = materialMap.get(id);
-      if (item) {
-        updatedMaterials.push(item);
-        materialMap.delete(id);
-      }
-    }
-
-    // Append any items that might have been missing from orderedIds
-    materialMap.forEach((remaining) => {
-      updatedMaterials.push(remaining);
-    });
-
-    // Re-sequence orderNumber (01, 02, ...)
-    updatedMaterials.forEach((item, index) => {
-      item.orderNumber = (index + 1).toString().padStart(2, "0");
-    });
-
-    await saveMaterials(updatedMaterials);
+    // Update order in Neon DB and local JSON
+    const updatedMaterials = await updateMaterialsOrder(orderedIds);
 
     return NextResponse.json({
       success: true,
@@ -288,7 +288,10 @@ export async function PUT(request: Request) {
 
 export async function PATCH(request: Request) {
   if (!isLocalhostRequest(request) || !isAuthenticated()) {
-    return NextResponse.json({ error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." }, { status: 403 });
+    return NextResponse.json(
+      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
+      { status: 403 }
+    );
   }
 
   try {
@@ -299,24 +302,26 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "ID materi diperlukan" }, { status: 400 });
     }
 
-    const currentMaterials = await loadMaterials();
-    const target = currentMaterials.find((m) => m.id === id || m.slug === id);
+    if (typeof isLocked !== "boolean") {
+      return NextResponse.json({ error: "Nilai isLocked wajib boolean" }, { status: 400 });
+    }
 
-    if (!target) {
+    // Update lock status in Neon DB and local JSON
+    const updatedTarget = await updateMaterialLock(id, isLocked);
+
+    if (!updatedTarget) {
       return NextResponse.json({ error: "Materi tidak ditemukan" }, { status: 404 });
     }
 
-    if (typeof isLocked === "boolean") {
-      target.isLocked = isLocked;
-    }
-
-    await saveMaterials(currentMaterials);
+    const currentMaterials = await getAllMaterials();
 
     return NextResponse.json({
       success: true,
-      message: `Status materi "${target.title}" berhasil diubah menjadi ${target.isLocked ? "Terkunci" : "Terbuka"}.`,
+      message: `Status materi "${updatedTarget.title}" berhasil diubah menjadi ${
+        updatedTarget.isLocked ? "Terkunci" : "Terbuka"
+      }.`,
       materials: currentMaterials,
-      material: target,
+      material: updatedTarget,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -325,6 +330,3 @@ export async function PATCH(request: Request) {
     );
   }
 }
-
-
-

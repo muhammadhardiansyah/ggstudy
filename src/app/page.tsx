@@ -2,20 +2,38 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { materials } from "@/data/materials";
-import { DifficultyLevel } from "@/types/material";
+import { materials as defaultMaterials } from "@/data/materials";
+import { DifficultyLevel, MaterialItem } from "@/types/material";
 import { MaterialCard } from "@/components/MaterialCard";
 
 const ITEMS_PER_PAGE = 6;
 
 export default function HomePage() {
+  const [materialsList, setMaterialsList] = useState<MaterialItem[]>(defaultMaterials);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLevel, setSelectedLevel] = useState<DifficultyLevel | "Semua">("Semua");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Fetch live materials from Neon database via API
+  useEffect(() => {
+    fetch("/api/admin/materials")
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setMaterialsList(data);
+        }
+      })
+      .catch((err) => {
+        console.error("Gagal memuat materi dari database:", err);
+      });
+  }, []);
+
   // Filter materials based on search and level
   const filteredMaterials = useMemo(() => {
-    return materials.filter((item) => {
+    return materialsList.filter((item) => {
       const matchLevel = selectedLevel === "Semua" || item.level === selectedLevel;
       const q = searchQuery.toLowerCase().trim();
 
@@ -67,7 +85,7 @@ export default function HomePage() {
           </p>
         </div>
         <span className="text-xs font-bold text-[#cc8b56] bg-[#ffe8d6] px-3 py-1 rounded-xl border border-[#d4a373]/40 self-start sm:self-auto">
-          {filteredMaterials.length} dari {materials.length} Modul
+          {filteredMaterials.length} dari {materialsList.length} Modul
         </span>
       </div>
 

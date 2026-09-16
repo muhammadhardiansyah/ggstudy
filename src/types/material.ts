@@ -22,6 +22,7 @@ export interface MaterialItem {
   slideCount: number;
   estimatedMinutes: number;
   fileName: string;
+  blobUrl?: string;
   topics: string[];
   slide1?: Slide1Theme;
   isLocked?: boolean;

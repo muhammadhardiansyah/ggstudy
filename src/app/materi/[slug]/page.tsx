@@ -2,7 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
-import { materials, getMaterialBySlug } from "@/data/materials";
+import { getMaterialBySlug, getAllMaterials } from "@/lib/db";
 import { SlideViewer } from "@/components/SlideViewer";
 import { LevelBadge } from "@/components/LevelBadge";
 import { Clock, Layers, Lock, ArrowLeft } from "lucide-react";
@@ -13,14 +13,15 @@ interface Props {
   };
 }
 
-export function generateStaticParams() {
-  return materials.map((item) => ({
+export async function generateStaticParams() {
+  const allMaterials = await getAllMaterials();
+  return allMaterials.map((item) => ({
     slug: item.slug,
   }));
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const material = getMaterialBySlug(params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const material = await getMaterialBySlug(params.slug);
   if (!material) {
     return {
       title: "Materi Tidak Ditemukan | ggstudy",
@@ -38,8 +39,11 @@ export function generateMetadata({ params }: Props): Metadata {
   };
 }
 
-export default function MaterialDetailPage({ params }: Props) {
-  const material = getMaterialBySlug(params.slug);
+export default async function MaterialDetailPage({ params }: Props) {
+  const [material, allMaterials] = await Promise.all([
+    getMaterialBySlug(params.slug),
+    getAllMaterials(),
+  ]);
 
   if (!material) {
     notFound();
@@ -159,11 +163,11 @@ export default function MaterialDetailPage({ params }: Props) {
                 Daftar Seluruh Modul
               </span>
               <span className="text-[10px] font-semibold text-[#a98467]">
-                {materials.length} Materi
+                {allMaterials.length} Materi
               </span>
             </div>
             <div className="space-y-1">
-              {materials.map((m) => {
+              {allMaterials.map((m) => {
                 const isCurrent = m.slug === material.slug;
                 return (
                   <Link

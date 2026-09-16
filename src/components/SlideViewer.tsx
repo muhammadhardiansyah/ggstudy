@@ -168,7 +168,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
 
         <iframe
           ref={iframeRef}
-          src={`/materials/${material.fileName}`}
+          src={material.blobUrl || `/materials/${material.fileName}`}
           title={material.title}
           onLoad={() => setIsLoading(false)}
           className="w-full h-full border-0 absolute inset-0 bg-transparent"
