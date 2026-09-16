@@ -12,8 +12,8 @@ export function middleware(request: NextRequest) {
     const materialList = rawMaterials as unknown as MaterialItem[];
     const matched = materialList.find((m) => m.fileName === fileName);
 
-    if (matched && matched.isLocked) {
-      // Redirect directly to the module page which displays the restricted lock screen
+    if (matched) {
+      // Redirect to the module page
       return NextResponse.redirect(new URL(`/materi/${matched.slug}`, request.url));
     }
   }

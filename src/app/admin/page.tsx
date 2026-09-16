@@ -80,7 +80,6 @@ const COLOR_PRESETS = [
 const EMOJI_OPTIONS = ["🤖", "🍜", "🛡️", "🗣️", "🐍", "🔄", "📦", "💡", "🎮", "🚀", "⭐", "💻"];
 
 export default function AdminPage() {
-  const [isLocalhost, setIsLocalhost] = useState<boolean | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
 
@@ -135,23 +134,9 @@ export default function AdminPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check environment & auth on mount
+  // Check auth on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const hostname = window.location.hostname;
-      const isLocal =
-        hostname === "localhost" ||
-        hostname === "127.0.0.1" ||
-        hostname.endsWith(".local") ||
-        hostname.startsWith("192.168.");
-      setIsLocalhost(isLocal);
-
-      if (isLocal) {
-        checkAuth();
-      } else {
-        setLoadingAuth(false);
-      }
-    }
+    checkAuth();
   }, []);
 
   async function checkAuth() {
@@ -564,40 +549,6 @@ export default function AdminPage() {
         <div className="flex items-center gap-2 text-[#a98467] font-medium text-sm">
           <div className="w-5 h-5 border-2 border-[#d4a373] border-t-transparent rounded-full animate-spin" />
           Memverifikasi akses admin...
-        </div>
-      </div>
-    );
-  }
-
-  // DANGER SCREEN: When accessed outside localhost (e.g. on Vercel domain)
-  if (isLocalhost === false) {
-    return (
-      <div className="min-h-[75vh] flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md bg-white rounded-3xl border-2 border-red-200 p-6 sm:p-8 shadow-[0_12px_40px_rgba(239,35,60,0.15)] space-y-6 text-center">
-          <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-inner border border-red-200">
-            <ShieldAlert className="w-9 h-9" />
-          </div>
-
-          <div className="space-y-2">
-            <span className="inline-block px-3 py-1 rounded-full bg-red-100 text-red-700 border border-red-200 text-[10px] font-black tracking-wider uppercase">
-              Peringatan Bahaya
-            </span>
-            <h1 className="text-xl sm:text-2xl font-black text-red-600 tracking-tight">
-              Akses Tidak Diizinkan!
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-600 max-w-sm mx-auto leading-relaxed">
-              Anda tidak diizinkan membuka halaman ini di domain ini. Pengelolaan materi hanya dapat dilakukan melalui komputer lokal pengajar (<code className="bg-stone-100 px-1 py-0.5 rounded text-stone-800 font-mono text-xs">localhost</code>).
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 w-full py-3 px-5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl shadow-sm transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-4 h-4" /> Kembali ke Dashboard
-            </Link>
-          </div>
         </div>
       </div>
     );

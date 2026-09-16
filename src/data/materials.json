@@ -11,20 +11,22 @@
     "slideCount": 8,
     "estimatedMinutes": 20,
     "fileName": "Presentasi_Detektif_Waktu.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Detektif_Waktu.html",
     "topics": [
       "library",
       "floor",
       "modulus",
       "latihan"
     ],
+    "isLocked": false,
     "slide1": {
       "emoji": "💡",
-      "bgGradient": "linear-gradient(135deg, #fefce8 0%, #fef08a 100%)",
-      "borderColor": "#facc15",
-      "titleColor": "#ca8a04",
-      "subtitleColor": "#854d0e",
+      "tagText": "Tantangan Coding: Level Pemula",
       "tagColor": "#dc2626",
-      "tagText": "Tantangan Coding: Level Pemula"
+      "bgGradient": "linear-gradient(135deg, #fefce8 0%, #fef08a 100%)",
+      "titleColor": "#ca8a04",
+      "borderColor": "#facc15",
+      "subtitleColor": "#854d0e"
     }
   },
   {
@@ -39,20 +41,22 @@
     "slideCount": 6,
     "estimatedMinutes": 20,
     "fileName": "Presentasi_Pabrik_Robot.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Pabrik_Robot.html",
     "topics": [
       "Definisi Fungsi (def)",
       "Parameter Mesin",
       "Return Value",
       "Latihan Rumpang"
     ],
+    "isLocked": false,
     "slide1": {
       "emoji": "🤖",
-      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
-      "borderColor": "#4dd0e1",
-      "titleColor": "#00838f",
-      "subtitleColor": "#006064",
+      "tagText": "Belajar Kode Rumpang (Fill-in-the-blanks)",
       "tagColor": "#ff8f00",
-      "tagText": "Belajar Kode Rumpang (Fill-in-the-blanks)"
+      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      "titleColor": "#00838f",
+      "borderColor": "#4dd0e1",
+      "subtitleColor": "#006064"
     }
   },
   {
@@ -67,20 +71,22 @@
     "slideCount": 6,
     "estimatedMinutes": 25,
     "fileName": "Presentasi_Kasir_Kantin.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Kasir_Kantin.html",
     "topics": [
       "Multi Parameter",
       "Perhitungan Tagihan",
       "Modul Kantin",
       "Studi Kasus"
     ],
+    "isLocked": false,
     "slide1": {
       "emoji": "🍜",
-      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
-      "borderColor": "#d4a373",
-      "titleColor": "#cc8b56",
-      "subtitleColor": "#a98467",
+      "tagText": "Tantangan Coding: Level Menengah",
       "tagColor": "#ef233c",
-      "tagText": "Tantangan Coding: Level Menengah"
+      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
+      "titleColor": "#cc8b56",
+      "borderColor": "#d4a373",
+      "subtitleColor": "#a98467"
     }
   },
   {
@@ -95,20 +101,22 @@
     "slideCount": 7,
     "estimatedMinutes": 30,
     "fileName": "Presentasi_Logika_Kasir.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Logika_Kasir.html",
     "topics": [
       "If-Elif-Else",
       "Validasi Nominal",
       "Diskon Belanja",
       "Logika Anti-Minus"
     ],
+    "isLocked": false,
     "slide1": {
       "emoji": "🛡️",
-      "bgGradient": "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)",
-      "borderColor": "#5eead4",
-      "titleColor": "#0f766e",
-      "subtitleColor": "#115e59",
+      "tagText": "Tantangan Coding: Level Boss",
       "tagColor": "#ef4444",
-      "tagText": "Tantangan Coding: Level Boss"
+      "bgGradient": "linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%)",
+      "titleColor": "#0f766e",
+      "borderColor": "#5eead4",
+      "subtitleColor": "#115e59"
     }
   },
   {
@@ -123,20 +131,22 @@
     "slideCount": 7,
     "estimatedMinutes": 30,
     "fileName": "Presentasi_Kasir_Interaktif.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Kasir_Interaktif.html",
     "topics": [
       "Dynamic input()",
       "Type Casting int()",
       "Interaksi Terminal",
       "Simulasi Nyata"
     ],
+    "isLocked": false,
     "slide1": {
       "emoji": "🗣️",
-      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
-      "borderColor": "#d4a373",
-      "titleColor": "#cc8b56",
-      "subtitleColor": "#a98467",
+      "tagText": "Tantangan Coding: Level Lanjut (Advanced)",
       "tagColor": "#ef233c",
-      "tagText": "Tantangan Coding: Level Lanjut (Advanced)"
+      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
+      "titleColor": "#cc8b56",
+      "borderColor": "#d4a373",
+      "subtitleColor": "#a98467"
     }
   },
   {
@@ -151,21 +161,22 @@
     "slideCount": 8,
     "estimatedMinutes": 30,
     "fileName": "Presentasi_Tebak_Angka_WhileTrue.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Tebak_Angka_WhileTrue.html",
     "topics": [
       "looping",
       "library random",
       "input"
     ],
+    "isLocked": true,
     "slide1": {
       "emoji": "🎮",
-      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
-      "borderColor": "#d4a373",
-      "titleColor": "#cc8b56",
-      "subtitleColor": "#a98467",
+      "tagText": "Tantangan Coding: Level Lanjut",
       "tagColor": "#ef233c",
-      "tagText": "Tantangan Coding: Level Lanjut"
-    },
-    "isLocked": true
+      "bgGradient": "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)",
+      "titleColor": "#cc8b56",
+      "borderColor": "#d4a373",
+      "subtitleColor": "#a98467"
+    }
   },
   {
     "id": "duel-hero-vs-boss",
@@ -179,6 +190,7 @@
     "slideCount": 8,
     "estimatedMinutes": 30,
     "fileName": "Presentasi_Simulasi_Battle_1v1.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_Simulasi_Battle_1v1.html",
     "topics": [
       "while loop",
       "if-elif",
@@ -186,16 +198,16 @@
       "variabel dinamis",
       "break statement"
     ],
+    "isLocked": true,
     "slide1": {
       "emoji": "🤖",
-      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
-      "borderColor": "#4dd0e1",
-      "titleColor": "#00838f",
-      "subtitleColor": "#006064",
+      "tagText": "Tantangan Coding: Level Lanjut",
       "tagColor": "#ff8f00",
-      "tagText": "Tantangan Coding: Level Lanjut"
-    },
-    "isLocked": true
+      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      "titleColor": "#00838f",
+      "borderColor": "#4dd0e1",
+      "subtitleColor": "#006064"
+    }
   },
   {
     "id": "peta-harta-karun-piksel",
@@ -209,20 +221,21 @@
     "slideCount": 9,
     "estimatedMinutes": 30,
     "fileName": "Presentasi_List_2D_Piksel.html",
+    "blobUrl": "https://aibzobdq4emtkvpv.public.blob.vercel-storage.com/materials/Presentasi_List_2D_Piksel.html",
     "topics": [
       "list",
       "matrics",
       "position"
     ],
+    "isLocked": true,
     "slide1": {
       "emoji": "💻",
-      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
-      "borderColor": "#4dd0e1",
-      "titleColor": "#00838f",
-      "subtitleColor": "#006064",
+      "tagText": "Tantangan Coding: Level Lanjut",
       "tagColor": "#ff8f00",
-      "tagText": "Tantangan Coding: Level Lanjut"
-    },
-    "isLocked": true
+      "bgGradient": "linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)",
+      "titleColor": "#00838f",
+      "borderColor": "#4dd0e1",
+      "subtitleColor": "#006064"
+    }
   }
 ]

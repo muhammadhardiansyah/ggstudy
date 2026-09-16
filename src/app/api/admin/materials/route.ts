@@ -43,10 +43,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+  if (!isAuthenticated()) {
     return NextResponse.json(
-      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
-      { status: 403 }
+      { error: "Akses ditolak. Silakan login sebagai admin terlebih dahulu." },
+      { status: 401 }
     );
   }
 
@@ -192,10 +192,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+  if (!isAuthenticated()) {
     return NextResponse.json(
-      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
-      { status: 403 }
+      { error: "Akses ditolak. Silakan login sebagai admin terlebih dahulu." },
+      { status: 401 }
     );
   }
 
@@ -252,10 +252,10 @@ export async function DELETE(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+  if (!isAuthenticated()) {
     return NextResponse.json(
-      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
-      { status: 403 }
+      { error: "Akses ditolak. Silakan login sebagai admin terlebih dahulu." },
+      { status: 401 }
     );
   }
 
@@ -287,10 +287,10 @@ export async function PUT(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+  if (!isAuthenticated()) {
     return NextResponse.json(
-      { error: "Akses ditolak. Fitur ini hanya tersedia di komputer lokal." },
-      { status: 403 }
+      { error: "Akses ditolak. Silakan login sebagai admin terlebih dahulu." },
+      { status: 401 }
     );
   }
 

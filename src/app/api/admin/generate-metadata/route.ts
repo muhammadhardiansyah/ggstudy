@@ -30,10 +30,10 @@ function cleanHtmlForAI(html: string): string {
 }
 
 export async function POST(request: Request) {
-  if (!isLocalhostRequest(request) || !isAuthenticated()) {
+  if (!isAuthenticated()) {
     return NextResponse.json(
-      { error: "Akses ditolak. Fitur AI hanya tersedia di komputer lokal." },
-      { status: 403 }
+      { error: "Akses ditolak. Silakan login sebagai admin terlebih dahulu." },
+      { status: 401 }
     );
   }
 

@@ -1,23 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-function isLocalhostRequest(request: Request): boolean {
-  const host = request.headers.get("host") || "";
-  return (
-    host.startsWith("localhost") ||
-    host.startsWith("127.0.0.1") ||
-    host.includes(".local") ||
-    host.startsWith("192.168.")
-  );
-}
-
 export async function POST(request: Request) {
-  if (!isLocalhostRequest(request)) {
-    return NextResponse.json(
-      { success: false, message: "Akses ditolak. Fitur admin hanya dapat diakses di komputer lokal." },
-      { status: 403 }
-    );
-  }
 
   try {
     const body = await request.json();
