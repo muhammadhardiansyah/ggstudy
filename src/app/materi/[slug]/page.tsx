@@ -13,12 +13,8 @@ interface Props {
   };
 }
 
-export async function generateStaticParams() {
-  const allMaterials = await getAllMaterials();
-  return allMaterials.map((item) => ({
-    slug: item.slug,
-  }));
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const material = await getMaterialBySlug(params.slug);

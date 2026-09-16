@@ -12,15 +12,8 @@ import {
   deleteMaterial,
 } from "@/lib/db";
 
-function isLocalhostRequest(request: Request): boolean {
-  const host = request.headers.get("host") || "";
-  return (
-    host.startsWith("localhost") ||
-    host.startsWith("127.0.0.1") ||
-    host.includes(".local") ||
-    host.startsWith("192.168.")
-  );
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 function isAuthenticated(): boolean {
   const cookieStore = cookies();
@@ -39,7 +32,11 @@ function slugify(text: string): string {
 
 export async function GET() {
   const materials = await getAllMaterials();
-  return NextResponse.json(materials);
+  return NextResponse.json(materials, {
+    headers: {
+      "Cache-Control": "no-store, max-age=0, must-revalidate",
+    },
+  });
 }
 
 export async function POST(request: Request) {
