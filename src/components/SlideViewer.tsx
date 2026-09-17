@@ -26,10 +26,45 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Send message to iframe
+  // Send message to iframe (supports postMessage and direct same-origin execution)
   const sendToIframe = (data: any) => {
+    // 1. Post message to iframe
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(data, "*");
+    }
+
+    // 2. Direct same-origin execution for instant response
+    try {
+      const iframeWin = iframeRef.current?.contentWindow as any;
+      if (iframeWin) {
+        if (data === "next") {
+          if (typeof iframeWin.changeSlide === "function") {
+            iframeWin.changeSlide(1);
+          } else if (typeof iframeWin.showSlide === "function") {
+            iframeWin.showSlide(Math.min(totalSlides - 1, currentSlide));
+          }
+        } else if (data === "prev") {
+          if (typeof iframeWin.changeSlide === "function") {
+            iframeWin.changeSlide(-1);
+          } else if (typeof iframeWin.showSlide === "function") {
+            iframeWin.showSlide(Math.max(0, currentSlide - 2));
+          }
+        } else if (typeof data?.goToSlide === "number") {
+          const target = Math.max(0, Math.min(totalSlides - 1, data.goToSlide - 1));
+          if (typeof iframeWin.showSlide === "function") {
+            if (typeof iframeWin.currentSlide === "number") {
+              iframeWin.currentSlide = target;
+            }
+            iframeWin.showSlide(target);
+          }
+        }
+
+        if (typeof iframeWin.currentSlide === "number") {
+          setCurrentSlide(iframeWin.currentSlide + 1);
+        }
+      }
+    } catch {
+      // Ignore cross-origin issues if any
     }
   };
 
@@ -100,6 +135,24 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
     }, 7000);
     return () => clearTimeout(timer);
   }, [material.slug]);
+
+  const handleIframeLoad = () => {
+    setIsLoading(false);
+    try {
+      const iframeWin = iframeRef.current?.contentWindow as any;
+      if (iframeWin) {
+        const slides = iframeWin.document?.querySelectorAll?.(".slide");
+        if (slides && slides.length > 0) {
+          setTotalSlides(slides.length);
+        }
+        if (typeof iframeWin.currentSlide === "number") {
+          setCurrentSlide(iframeWin.currentSlide + 1);
+        }
+      }
+    } catch {
+      // Ignore
+    }
+  };
 
   return (
     <div
@@ -179,7 +232,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
           ref={iframeRef}
           src={`/api/slides/${material.slug}`}
           title={material.title}
-          onLoad={() => setIsLoading(false)}
+          onLoad={handleIframeLoad}
           onError={() => setIsLoading(false)}
           className="w-full h-full border-0 absolute inset-0 bg-transparent"
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
@@ -192,7 +245,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
           <button
             onClick={handlePrev}
             disabled={currentSlide <= 1}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stone-800 text-stone-200 text-xs font-semibold hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stone-800 text-stone-200 text-xs font-semibold hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Sebelumnya</span>
@@ -200,7 +253,7 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
           <button
             onClick={handleNext}
             disabled={currentSlide >= totalSlides}
-            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 text-xs font-semibold hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 text-stone-950 text-xs font-semibold hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
             <span className="hidden sm:inline">Selanjutnya</span>
             <ChevronRight className="w-4 h-4" />
@@ -212,9 +265,10 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
           {Array.from({ length: totalSlides }).map((_, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => sendToIframe({ goToSlide: i + 1 })}
               title={`Menuju Slide ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${
+              className={`h-2 rounded-full transition-all cursor-pointer ${
                 currentSlide === i + 1 ? "w-6 bg-amber-400" : "w-2 bg-stone-700 hover:bg-stone-500"
               }`}
             />

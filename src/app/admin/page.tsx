@@ -110,6 +110,7 @@ export default function AdminPage() {
   const [topics, setTopics] = useState("");
   const [slideCount, setSlideCount] = useState(6);
   const [detectedSlideCount, setDetectedSlideCount] = useState<number | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   // Slide 1 Customizer state
   const [emoji, setEmoji] = useState("🚀");
@@ -324,6 +325,7 @@ export default function AdminPage() {
       formData.append("subtitleColor", subtitleColor);
       formData.append("tagColor", tagColor);
       formData.append("tagText", tagText);
+      formData.append("isLocked", isLocked ? "true" : "false");
 
       const res = await fetch("/api/admin/materials", {
         method: "POST",
@@ -341,6 +343,7 @@ export default function AdminPage() {
         setSelectedFile(null);
         setPastedHtml("");
         setCustomFileName("");
+        setIsLocked(false);
         if (fileInputRef.current) fileInputRef.current.value = "";
         setTitle("");
         setSubtitle("");
@@ -1059,8 +1062,60 @@ export default function AdminPage() {
                   <span className="text-[11px] text-[#a98467]">
                     {detectedSlideCount !== null
                       ? `(Terdeteksi otomatis: ${detectedSlideCount} slide)`
-                      : "(Akan terdeteksi otomatis saat file dipilih)"}
+                      : "(Akan terdeteksi otomatis saat berkas dipilih)"}
                   </span>
+                </div>
+              </div>
+
+              {/* Status Kunci Modul (Akses Siswa) */}
+              <div className="space-y-2 pt-2 border-t border-[#e9edc9]">
+                <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                  Status Kunci Modul (Akses Siswa)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsLocked(false)}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
+                      !isLocked
+                        ? "bg-emerald-50/80 border-emerald-500 shadow-xs"
+                        : "bg-white border-[#e8e1d5] hover:border-[#d4a373]/40"
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 ${!isLocked ? "bg-emerald-500 text-white" : "bg-stone-100 text-stone-400"}`}>
+                      <Unlock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className={`text-xs font-bold block ${!isLocked ? "text-emerald-900" : "text-stone-700"}`}>
+                        Terbuka (Dapat Diakses)
+                      </span>
+                      <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
+                        Siswa dapat langsung membuka dan mempelajari materi ini di portal.
+                      </span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsLocked(true)}
+                    className={`p-3.5 rounded-2xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
+                      isLocked
+                        ? "bg-amber-50/80 border-amber-500 shadow-xs"
+                        : "bg-white border-[#e8e1d5] hover:border-[#d4a373]/40"
+                    }`}
+                  >
+                    <div className={`p-2 rounded-xl shrink-0 ${isLocked ? "bg-amber-500 text-white" : "bg-stone-100 text-stone-400"}`}>
+                      <Lock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className={`text-xs font-bold block ${isLocked ? "text-amber-900" : "text-stone-700"}`}>
+                        Terkunci (Dirahasiakan)
+                      </span>
+                      <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
+                        Materi dirahasiakan dan belum dapat dibuka oleh siswa.
+                      </span>
+                    </div>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1079,8 +1134,13 @@ export default function AdminPage() {
                   </span>
                   <div
                     style={{ background: bgGradient }}
-                    className="w-full aspect-[16/10] rounded-xl p-3 flex items-center justify-center border border-stone-200 shadow-xs"
+                    className="w-full aspect-[16/10] rounded-xl p-3 flex items-center justify-center border border-stone-200 shadow-xs relative overflow-hidden"
                   >
+                    {isLocked && (
+                      <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-md bg-amber-100/95 text-amber-900 border border-amber-300 text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                        <Lock className="w-2.5 h-2.5 text-amber-700" /> Terkunci
+                      </div>
+                    )}
                     <div
                       style={{ borderColor: borderColor }}
                       className="w-[94%] h-[90%] bg-white rounded-lg border-2 p-2.5 flex flex-col items-center justify-center text-center shadow-xs"

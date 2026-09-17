@@ -5,6 +5,145 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
+const PORTAL_BRIDGE_SCRIPT = `
+<script id="ggstudy-portal-bridge">
+(function() {
+  if (window.__ggstudy_bridge_ready) return;
+  window.__ggstudy_bridge_ready = true;
+
+  function getSlides() {
+    return document.querySelectorAll('.slide');
+  }
+
+  function getActiveIndex() {
+    if (typeof window.currentSlide === 'number') {
+      return window.currentSlide;
+    }
+    var slides = getSlides();
+    for (var i = 0; i < slides.length; i++) {
+      if (slides[i].classList.contains('active')) return i;
+    }
+    return 0;
+  }
+
+  function sendSlideUpdate() {
+    if (window.parent && window.parent !== window) {
+      var slides = getSlides();
+      var idx = getActiveIndex();
+      window.parent.postMessage({
+        type: 'slideChange',
+        currentSlide: idx + 1,
+        totalSlides: slides.length > 0 ? slides.length : 1
+      }, '*');
+    }
+  }
+
+  function attachHooks() {
+    if (typeof window.showSlide === 'function' && !window.showSlide.__bridged) {
+      var origShow = window.showSlide;
+      window.showSlide = function(idx) {
+        var res = origShow.apply(this, arguments);
+        sendSlideUpdate();
+        return res;
+      };
+      window.showSlide.__bridged = true;
+    }
+
+    if (typeof window.changeSlide === 'function' && !window.changeSlide.__bridged) {
+      var origChange = window.changeSlide;
+      window.changeSlide = function(dir) {
+        var res = origChange.apply(this, arguments);
+        sendSlideUpdate();
+        return res;
+      };
+      window.changeSlide.__bridged = true;
+    }
+  }
+
+  attachHooks();
+
+  // Listen for navigation messages from the parent portal
+  window.addEventListener('message', function(e) {
+    if (!e.data) return;
+    var slides = getSlides();
+    if (!slides.length) return;
+
+    if (e.data === 'next') {
+      if (typeof window.changeSlide === 'function') {
+        window.changeSlide(1);
+      } else {
+        var next = Math.min(slides.length - 1, getActiveIndex() + 1);
+        if (typeof window.showSlide === 'function') {
+          window.showSlide(next);
+        } else {
+          for (var i = 0; i < slides.length; i++) {
+            slides[i].classList.toggle('active', i === next);
+          }
+          sendSlideUpdate();
+        }
+      }
+    } else if (e.data === 'prev') {
+      if (typeof window.changeSlide === 'function') {
+        window.changeSlide(-1);
+      } else {
+        var prev = Math.max(0, getActiveIndex() - 1);
+        if (typeof window.showSlide === 'function') {
+          window.showSlide(prev);
+        } else {
+          for (var i = 0; i < slides.length; i++) {
+            slides[i].classList.toggle('active', i === prev);
+          }
+          sendSlideUpdate();
+        }
+      }
+    } else if (typeof e.data.goToSlide === 'number') {
+      var target = Math.max(0, Math.min(slides.length - 1, e.data.goToSlide - 1));
+      if (typeof window.showSlide === 'function') {
+        if (typeof window.currentSlide === 'number') {
+          window.currentSlide = target;
+        }
+        window.showSlide(target);
+      } else {
+        for (var i = 0; i < slides.length; i++) {
+          slides[i].classList.toggle('active', i === target);
+        }
+        sendSlideUpdate();
+      }
+    }
+  });
+
+  // Watch for DOM class changes
+  if (window.MutationObserver) {
+    var observer = new MutationObserver(function() {
+      sendSlideUpdate();
+    });
+    var slides = getSlides();
+    for (var i = 0; i < slides.length; i++) {
+      observer.observe(slides[i], { attributes: true, attributeFilter: ['class'] });
+    }
+  }
+
+  // Detect button clicks inside the slide
+  document.addEventListener('click', function() {
+    setTimeout(sendSlideUpdate, 50);
+  });
+
+  // Initial update
+  function init() {
+    attachHooks();
+    sendSlideUpdate();
+  }
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  } else {
+    window.addEventListener('load', init);
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();
+</script>
+`;
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: { slug: string } }
@@ -60,6 +199,17 @@ export async function GET(
       });
     }
 
+    // 3. Suntikkan bridge script agar slide dapat berkomunikasi dua arah dengan portal
+    if (!htmlContent.includes("ggstudy-portal-bridge")) {
+      if (htmlContent.includes("</body>")) {
+        htmlContent = htmlContent.replace("</body>", `${PORTAL_BRIDGE_SCRIPT}\n</body>`);
+      } else if (htmlContent.includes("</html>")) {
+        htmlContent = htmlContent.replace("</html>", `${PORTAL_BRIDGE_SCRIPT}\n</html>`);
+      } else {
+        htmlContent += `\n${PORTAL_BRIDGE_SCRIPT}`;
+      }
+    }
+
     return new Response(htmlContent, {
       status: 200,
       headers: {
@@ -76,4 +226,3 @@ export async function GET(
     });
   }
 }
-
