@@ -92,6 +92,15 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
     };
   }, []);
 
+  // Safety fallback: ensure loading spinner disappears if iframe takes too long
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 7000);
+    return () => clearTimeout(timer);
+  }, [material.slug]);
+
   return (
     <div
       ref={containerRef}
@@ -168,9 +177,10 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
 
         <iframe
           ref={iframeRef}
-          src={material.blobUrl || `/materials/${material.fileName}`}
+          src={`/api/slides/${material.slug}`}
           title={material.title}
           onLoad={() => setIsLoading(false)}
+          onError={() => setIsLoading(false)}
           className="w-full h-full border-0 absolute inset-0 bg-transparent"
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
         />
