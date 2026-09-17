@@ -183,6 +183,85 @@ export async function upsertMaterial(item: MaterialItem): Promise<void> {
   await saveMaterialsToLocalJson(localList);
 }
 
+// 3b. Update material data
+export async function updateMaterial(
+  id: string,
+  updatedItem: Partial<MaterialItem>
+): Promise<MaterialItem | null> {
+  const current = await getMaterialBySlug(id);
+  const localList = await getMaterialsFromLocalJson();
+  const currentItem = current || localList.find((m) => m.id === id || m.slug === id);
+
+  if (!currentItem) {
+    return null;
+  }
+
+  const mergedItem: MaterialItem = {
+    ...currentItem,
+    ...updatedItem,
+    id: currentItem.id,
+    orderNumber: updatedItem.orderNumber || currentItem.orderNumber,
+    slug: updatedItem.slug || currentItem.slug,
+    title: updatedItem.title ?? currentItem.title,
+    subtitle: updatedItem.subtitle ?? currentItem.subtitle,
+    description: updatedItem.description ?? currentItem.description,
+    category: updatedItem.category ?? currentItem.category,
+    level: updatedItem.level ?? currentItem.level,
+    slideCount: updatedItem.slideCount ?? currentItem.slideCount,
+    estimatedMinutes: updatedItem.estimatedMinutes ?? currentItem.estimatedMinutes,
+    fileName: updatedItem.fileName ?? currentItem.fileName,
+    blobUrl: updatedItem.blobUrl !== undefined ? updatedItem.blobUrl : currentItem.blobUrl,
+    topics: updatedItem.topics ?? currentItem.topics,
+    isLocked: updatedItem.isLocked !== undefined ? Boolean(updatedItem.isLocked) : currentItem.isLocked,
+    slide1: updatedItem.slide1 ? { ...currentItem.slide1, ...updatedItem.slide1 } : currentItem.slide1,
+  };
+
+  const sql = getDbClient();
+  let result: MaterialItem | null = null;
+
+  if (sql) {
+    const rows = await sql`
+      UPDATE materials SET
+        slug = ${mergedItem.slug},
+        order_number = ${mergedItem.orderNumber},
+        title = ${mergedItem.title},
+        subtitle = ${mergedItem.subtitle},
+        description = ${mergedItem.description},
+        category = ${mergedItem.category},
+        level = ${mergedItem.level},
+        slide_count = ${mergedItem.slideCount},
+        estimated_minutes = ${mergedItem.estimatedMinutes},
+        file_name = ${mergedItem.fileName},
+        blob_url = ${mergedItem.blobUrl || null},
+        topics = ${JSON.stringify(mergedItem.topics)}::jsonb,
+        is_locked = ${Boolean(mergedItem.isLocked)},
+        slide1 = ${JSON.stringify(mergedItem.slide1 || {})}::jsonb,
+        updated_at = NOW()
+      WHERE id = ${id} OR slug = ${id}
+      RETURNING id, slug, order_number, title, subtitle, description, category, level,
+                slide_count, estimated_minutes, file_name, blob_url, topics, is_locked, slide1
+    `;
+    if (rows && rows.length > 0) {
+      result = mapRowToMaterial(rows[0]);
+    }
+  }
+
+  // Keep local JSON in sync
+  const existingIdx = localList.findIndex((m) => m.id === id || m.slug === id);
+  if (existingIdx >= 0) {
+    localList[existingIdx] = mergedItem;
+  } else {
+    localList.push(mergedItem);
+  }
+  await saveMaterialsToLocalJson(localList);
+
+  if (!result) {
+    result = mergedItem;
+  }
+
+  return result;
+}
+
 // 4. Update is_locked status
 export async function updateMaterialLock(id: string, isLocked: boolean): Promise<MaterialItem | null> {
   const sql = getDbClient();

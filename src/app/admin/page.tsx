@@ -23,6 +23,9 @@ import {
   ChevronUp,
   ChevronDown,
   ShieldAlert,
+  Edit3,
+  Save,
+  X,
 } from "lucide-react";
 import { MaterialItem, DifficultyLevel, Slide1Theme } from "@/types/material";
 import { LevelBadge } from "@/components/LevelBadge";
@@ -132,6 +135,38 @@ export default function AdminPage() {
 
   // Toggle lock state
   const [togglingLockId, setTogglingLockId] = useState<string | null>(null);
+
+  // Edit Material Modal State
+  const [editingMaterial, setEditingMaterial] = useState<MaterialItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editSubtitle, setEditSubtitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("Fondasi Pemrograman");
+  const [editLevel, setEditLevel] = useState<DifficultyLevel>("Pemula");
+  const [editEstimatedMinutes, setEditEstimatedMinutes] = useState(20);
+  const [editSlideCount, setEditSlideCount] = useState(6);
+  const [editTopics, setEditTopics] = useState("");
+  const [editIsLocked, setEditIsLocked] = useState(false);
+
+  // Edit Slide 1 Customizer state
+  const [editEmoji, setEditEmoji] = useState("🚀");
+  const [editBgGradient, setEditBgGradient] = useState(COLOR_PRESETS[0].bgGradient);
+  const [editBorderColor, setEditBorderColor] = useState(COLOR_PRESETS[0].borderColor);
+  const [editTitleColor, setEditTitleColor] = useState(COLOR_PRESETS[0].titleColor);
+  const [editSubtitleColor, setEditSubtitleColor] = useState(COLOR_PRESETS[0].subtitleColor);
+  const [editTagColor, setEditTagColor] = useState(COLOR_PRESETS[0].tagColor);
+  const [editTagText, setEditTagText] = useState("");
+
+  // Edit file replacement state
+  const [editReplaceFileMode, setEditReplaceFileMode] = useState<"keep" | "file" | "paste">("keep");
+  const [editSelectedFile, setEditSelectedFile] = useState<File | null>(null);
+  const [editPastedHtml, setEditPastedHtml] = useState("");
+  const [editCustomFileName, setEditCustomFileName] = useState("");
+  const [editDetectedSlideCount, setEditDetectedSlideCount] = useState<number | null>(null);
+
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editGeneratingAi, setEditGeneratingAi] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -494,6 +529,239 @@ export default function AdminPage() {
     } finally {
       setDeleteSubmitting(false);
       setDeletingMaterial(null);
+    }
+  }
+
+  function handleOpenEdit(item: MaterialItem) {
+    setEditingMaterial(item);
+    setEditTitle(item.title);
+    setEditSubtitle(item.subtitle || "");
+    setEditDescription(item.description || "");
+    setEditCategory(item.category || "Fondasi Pemrograman");
+    setEditLevel(item.level || "Pemula");
+    setEditEstimatedMinutes(item.estimatedMinutes || 20);
+    setEditSlideCount(item.slideCount || 6);
+    setEditTopics(Array.isArray(item.topics) ? item.topics.join(", ") : "");
+    setEditIsLocked(Boolean(item.isLocked));
+
+    setEditEmoji(item.slide1?.emoji || "📘");
+    setEditBgGradient(item.slide1?.bgGradient || COLOR_PRESETS[0].bgGradient);
+    setEditBorderColor(item.slide1?.borderColor || COLOR_PRESETS[0].borderColor);
+    setEditTitleColor(item.slide1?.titleColor || COLOR_PRESETS[0].titleColor);
+    setEditSubtitleColor(item.slide1?.subtitleColor || COLOR_PRESETS[0].subtitleColor);
+    setEditTagColor(item.slide1?.tagColor || COLOR_PRESETS[0].tagColor);
+    setEditTagText(item.slide1?.tagText || `Tantangan Coding: Level ${item.level}`);
+
+    setEditReplaceFileMode("keep");
+    setEditSelectedFile(null);
+    setEditPastedHtml("");
+    setEditCustomFileName("");
+    setEditDetectedSlideCount(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = "";
+  }
+
+  function applyEditColorPreset(preset: (typeof COLOR_PRESETS)[0]) {
+    setEditBgGradient(preset.bgGradient);
+    setEditBorderColor(preset.borderColor);
+    setEditTitleColor(preset.titleColor);
+    setEditSubtitleColor(preset.subtitleColor);
+    setEditTagColor(preset.tagColor);
+    setEditEmoji(preset.emoji);
+  }
+
+  function handleEditLevelChange(newLevel: DifficultyLevel) {
+    setEditLevel(newLevel);
+    if (!editTagText || editTagText.startsWith("Tantangan Coding: Level")) {
+      setEditTagText(`Tantangan Coding: Level ${newLevel}`);
+    }
+  }
+
+  function handleEditFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".html")) {
+      setNotification({ type: "error", message: "Berkas harus berformat .html" });
+      return;
+    }
+
+    setEditSelectedFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (text) {
+        const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+        const count = matches && matches.length > 0 ? matches.length : 6;
+        setEditDetectedSlideCount(count);
+        setEditSlideCount(count);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function handleEditPastedHtmlChange(text: string) {
+    setEditPastedHtml(text);
+    if (text) {
+      const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+      const count = matches && matches.length > 0 ? matches.length : 6;
+      setEditDetectedSlideCount(count);
+      setEditSlideCount(count);
+    } else {
+      setEditDetectedSlideCount(null);
+    }
+  }
+
+  async function handleEditGenerateAI() {
+    let htmlToAnalyze = "";
+    let fileNameToAnalyze = "";
+
+    if (editReplaceFileMode === "file" && editSelectedFile) {
+      htmlToAnalyze = await editSelectedFile.text();
+      fileNameToAnalyze = editSelectedFile.name;
+    } else if (editReplaceFileMode === "paste" && editPastedHtml.trim()) {
+      htmlToAnalyze = editPastedHtml.trim();
+      fileNameToAnalyze = editCustomFileName.trim() || `${editingMaterial?.fileName || "modul.html"}`;
+    } else if (editingMaterial) {
+      try {
+        const res = await fetch(`/api/slides/${editingMaterial.slug}`);
+        if (res.ok) {
+          htmlToAnalyze = await res.text();
+          fileNameToAnalyze = editingMaterial.fileName;
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    if (!htmlToAnalyze) {
+      setNotification({
+        type: "error",
+        message: "Tidak ada berkas atau teks HTML materi untuk dianalisis oleh AI.",
+      });
+      return;
+    }
+
+    setEditGeneratingAi(true);
+    try {
+      const res = await fetch("/api/admin/generate-metadata", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ htmlContent: htmlToAnalyze, fileName: fileNameToAnalyze }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        const meta = data.data;
+        if (meta.title) setEditTitle(meta.title);
+        if (meta.subtitle) setEditSubtitle(meta.subtitle);
+        if (meta.description) setEditDescription(meta.description);
+        if (meta.category) setEditCategory(meta.category);
+        if (meta.level) setEditLevel(meta.level);
+        if (meta.estimatedMinutes) setEditEstimatedMinutes(meta.estimatedMinutes);
+        if (meta.topics) {
+          setEditTopics(Array.isArray(meta.topics) ? meta.topics.join(", ") : meta.topics);
+        }
+        if (meta.slideCount) {
+          setEditSlideCount(meta.slideCount);
+          setEditDetectedSlideCount(meta.slideCount);
+        }
+        if (meta.emoji) setEditEmoji(meta.emoji);
+        if (typeof meta.colorPresetIndex === "number" && COLOR_PRESETS[meta.colorPresetIndex]) {
+          applyEditColorPreset(COLOR_PRESETS[meta.colorPresetIndex]);
+        }
+        if (meta.tagText) setEditTagText(meta.tagText);
+
+        setNotification({
+          type: "success",
+          message: "Isian materi berhasil dianalisis & disesuaikan oleh Gemini AI!",
+        });
+      } else {
+        setNotification({
+          type: "error",
+          message: data.error || "Gagal menghasilkan isian dengan AI",
+        });
+      }
+    } catch {
+      setNotification({
+        type: "error",
+        message: "Terjadi kesalahan saat menghubungi layanan AI",
+      });
+    } finally {
+      setEditGeneratingAi(false);
+    }
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingMaterial) return;
+
+    if (!editTitle.trim()) {
+      setNotification({ type: "error", message: "Judul materi wajib diisi" });
+      return;
+    }
+
+    setEditSubmitting(true);
+    setNotification(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("id", editingMaterial.id);
+      formData.append("title", editTitle.trim());
+      formData.append("subtitle", editSubtitle.trim());
+      formData.append("description", editDescription.trim());
+      formData.append("category", editCategory.trim());
+      formData.append("level", editLevel);
+      formData.append("estimatedMinutes", editEstimatedMinutes.toString());
+      formData.append("topics", editTopics);
+      formData.append("slideCount", editSlideCount.toString());
+      formData.append("emoji", editEmoji);
+      formData.append("bgGradient", editBgGradient);
+      formData.append("borderColor", editBorderColor);
+      formData.append("titleColor", editTitleColor);
+      formData.append("subtitleColor", editSubtitleColor);
+      formData.append("tagColor", editTagColor);
+      formData.append("tagText", editTagText);
+      formData.append("isLocked", editIsLocked ? "true" : "false");
+
+      // Replace file if specified
+      if (editReplaceFileMode === "file" && editSelectedFile) {
+        formData.append("file", editSelectedFile);
+      } else if (editReplaceFileMode === "paste" && editPastedHtml.trim()) {
+        formData.append("htmlContent", editPastedHtml.trim());
+        if (editCustomFileName.trim()) {
+          formData.append("fileName", editCustomFileName.trim());
+        }
+      }
+
+      const res = await fetch("/api/admin/materials", {
+        method: "PUT",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal memperbarui materi");
+      }
+
+      setNotification({
+        type: "success",
+        message: `Materi "${editTitle}" berhasil diperbarui & disimpan!`,
+      });
+
+      if (data.materials) {
+        setMaterials(data.materials);
+      } else {
+        await fetchMaterials();
+      }
+
+      setEditingMaterial(null);
+    } catch (err: any) {
+      setNotification({
+        type: "error",
+        message: err?.message || "Terjadi kesalahan saat menyimpan perubahan",
+      });
+    } finally {
+      setEditSubmitting(false);
     }
   }
 
@@ -1419,6 +1687,15 @@ export default function AdminPage() {
                         </>
                       )}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEdit(item)}
+                      className="text-xs font-bold text-[#cc8b56] bg-[#ffe8d6] hover:bg-[#ffd9b8] px-3 py-1.5 rounded-xl border border-[#d4a373]/40 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      title="Edit seluruh informasi materi ini"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#cc8b56]" />
+                      <span>Edit</span>
+                    </button>
                     <Link
                       href={`/materi/${item.slug}`}
                       target="_blank"
@@ -1436,6 +1713,481 @@ export default function AdminPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Material Modal */}
+      {editingMaterial && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-5xl bg-[#fdfbf7] rounded-3xl border-2 border-[#e8e1d5] shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-5 py-4 bg-white border-b-2 border-[#e9edc9] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-[#ffe8d6] border border-[#d4a373]/40 flex items-center justify-center text-[#cc8b56] shrink-0">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm sm:text-base font-black text-[#cc8b56] tracking-tight truncate">
+                      Edit Materi: {editingMaterial.title}
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#faedcd] text-[#cc8b56] border border-[#d4a373]/30">
+                      MODUL {editingMaterial.orderNumber}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#a98467] truncate">
+                    Sesuaikan seluruh informasi modul, tampilan kartu, status akses siswa, atau berkas materi.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingMaterial(null)}
+                className="p-1.5 rounded-xl text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+                title="Tutup formulir edit"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Form Content */}
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left 2 Cols: Form Fields */}
+                <div className="lg:col-span-2 space-y-5 bg-white rounded-2xl border-2 border-[#e8e1d5] p-4 sm:p-5 shadow-xs">
+                  {/* Status Akses Siswa (Lock / Unlock) */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                      Status Kunci Modul (Akses Siswa)
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditIsLocked(false)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
+                          !editIsLocked
+                            ? "bg-emerald-50/80 border-emerald-500 shadow-xs"
+                            : "bg-[#fdfbf7] border-[#e8e1d5] hover:border-[#d4a373]/40"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg shrink-0 ${!editIsLocked ? "bg-emerald-500 text-white" : "bg-stone-100 text-stone-400"}`}>
+                          <Unlock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className={`text-xs font-bold block ${!editIsLocked ? "text-emerald-900" : "text-stone-700"}`}>
+                            Terbuka (Dapat Diakses)
+                          </span>
+                          <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
+                            Siswa dapat langsung membuka dan mempelajari modul ini.
+                          </span>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditIsLocked(true)}
+                        className={`p-3 rounded-xl border-2 text-left transition-all flex items-start gap-3 cursor-pointer ${
+                          editIsLocked
+                            ? "bg-amber-50/80 border-amber-500 shadow-xs"
+                            : "bg-[#fdfbf7] border-[#e8e1d5] hover:border-[#d4a373]/40"
+                        }`}
+                      >
+                        <div className={`p-2 rounded-lg shrink-0 ${editIsLocked ? "bg-amber-500 text-white" : "bg-stone-100 text-stone-400"}`}>
+                          <Lock className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className={`text-xs font-bold block ${editIsLocked ? "text-amber-900" : "text-stone-700"}`}>
+                            Terkunci (Dirahasiakan)
+                          </span>
+                          <span className="text-[11px] text-stone-500 leading-tight block mt-0.5">
+                            Materi dirahasiakan dan belum dapat dibuka oleh siswa.
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* AI Assistance button */}
+                  <div className="pt-2 border-t border-[#e9edc9] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-xs text-[#a98467]">
+                      Ingin AI menganalisis ulang isi slide dan menyarankan isian?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleEditGenerateAI}
+                      disabled={editGeneratingAi}
+                      className="self-start sm:self-auto px-3 py-1.5 rounded-xl bg-[#faedcd] hover:bg-[#ffe8d6] text-[#cc8b56] border border-[#d4a373]/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {editGeneratingAi ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menganalisis...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Perbarui Isian via AI</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Title & Subtitle */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Judul Modul *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Subjudul Modul
+                      </label>
+                      <input
+                        type="text"
+                        value={editSubtitle}
+                        onChange={(e) => setEditSubtitle(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                      Deskripsi Modul
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                    />
+                  </div>
+
+                  {/* Category & Level */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Kategori
+                      </label>
+                      <input
+                        type="text"
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Tingkat Kesulitan
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["Pemula", "Menengah", "Lanjut"] as DifficultyLevel[]).map((lvl) => (
+                          <button
+                            type="button"
+                            key={lvl}
+                            onClick={() => handleEditLevelChange(lvl)}
+                            className={`py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                              editLevel === lvl
+                                ? "bg-[#cc8b56] text-white border-[#cc8b56] shadow-xs"
+                                : "bg-[#fdfbf7] text-[#a98467] border-[#e9edc9] hover:bg-[#ffe8d6]"
+                            }`}
+                          >
+                            {lvl}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Estimated Minutes & Slide Count */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Estimasi Waktu Belajar (Menit)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={300}
+                        value={editEstimatedMinutes}
+                        onChange={(e) => setEditEstimatedMinutes(parseInt(e.target.value, 10) || 20)}
+                        className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Jumlah Slide
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={editSlideCount}
+                        onChange={(e) => setEditSlideCount(parseInt(e.target.value, 10) || 6)}
+                        className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Topics */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                      Topik Kunci (Pisahkan dengan koma)
+                    </label>
+                    <input
+                      type="text"
+                      value={editTopics}
+                      onChange={(e) => setEditTopics(e.target.value)}
+                      placeholder="Python, Logika, Looping, Variabel"
+                      className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                    />
+                  </div>
+
+                  {/* File Replacement Section */}
+                  <div className="space-y-3 pt-3 border-t border-[#e9edc9]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                        Berkas Presentasi HTML
+                      </label>
+                      <div className="inline-flex p-1 bg-[#f5efe6] rounded-xl border border-[#e8e1d5] gap-1 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={() => setEditReplaceFileMode("keep")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            editReplaceFileMode === "keep"
+                              ? "bg-white text-[#cc8b56] shadow-xs"
+                              : "text-[#a98467] hover:text-[#cc8b56]"
+                          }`}
+                        >
+                          Tetap Gunakan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditReplaceFileMode("file")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            editReplaceFileMode === "file"
+                              ? "bg-white text-[#cc8b56] shadow-xs"
+                              : "text-[#a98467] hover:text-[#cc8b56]"
+                          }`}
+                        >
+                          Unggah Baru
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditReplaceFileMode("paste")}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            editReplaceFileMode === "paste"
+                              ? "bg-white text-[#cc8b56] shadow-xs"
+                              : "text-[#a98467] hover:text-[#cc8b56]"
+                          }`}
+                        >
+                          Tempel HTML
+                        </button>
+                      </div>
+                    </div>
+
+                    {editReplaceFileMode === "keep" && (
+                      <div className="p-3 bg-[#fdfbf7] border border-[#e9edc9] rounded-xl flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileCode className="w-4 h-4 text-[#cc8b56] shrink-0" />
+                          <span className="font-mono text-stone-700 truncate">{editingMaterial.fileName}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                          Tersimpan Aktif
+                        </span>
+                      </div>
+                    )}
+
+                    {editReplaceFileMode === "file" && (
+                      <div className="space-y-2">
+                        <input
+                          ref={editFileInputRef}
+                          type="file"
+                          accept=".html"
+                          onChange={handleEditFileChange}
+                          className="block w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#ffe8d6] file:text-[#cc8b56] hover:file:bg-[#ffd9b8] cursor-pointer"
+                        />
+                        {editSelectedFile && (
+                          <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Berkas baru dipilih: {editSelectedFile.name} ({Math.round(editSelectedFile.size / 1024)} KB)
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {editReplaceFileMode === "paste" && (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editCustomFileName}
+                          onChange={(e) => setEditCustomFileName(e.target.value)}
+                          placeholder={`Nama file pengganti (misal: ${editingMaterial.fileName})`}
+                          className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border border-[#e9edc9] text-xs text-[#333]"
+                        />
+                        <textarea
+                          rows={6}
+                          value={editPastedHtml}
+                          onChange={(e) => handleEditPastedHtmlChange(e.target.value)}
+                          placeholder="<!DOCTYPE html> Tempel kode HTML presentasi baru di sini..."
+                          className="w-full px-3.5 py-2 bg-[#fdfbf7] rounded-xl border-2 border-[#e9edc9] font-mono text-xs text-[#333] focus:outline-none focus:border-[#d4a373]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right 1 Col: Slide 1 Preview & Theme Customizer */}
+                <div className="space-y-5 bg-white rounded-2xl border-2 border-[#e8e1d5] p-4 sm:p-5 shadow-xs flex flex-col">
+                  <h3 className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider border-b border-[#e9edc9] pb-2">
+                    Pratinjau &amp; Tema Kartu
+                  </h3>
+
+                  {/* Live Card Preview */}
+                  <div
+                    style={{ background: editBgGradient }}
+                    className="w-full aspect-[16/10] rounded-xl p-3 flex items-center justify-center border border-stone-200 shadow-xs relative overflow-hidden"
+                  >
+                    {editIsLocked && (
+                      <div className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-md bg-amber-100/95 text-amber-900 border border-amber-300 text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                        <Lock className="w-2.5 h-2.5 text-amber-700" /> Terkunci
+                      </div>
+                    )}
+                    <div
+                      style={{ borderColor: editBorderColor }}
+                      className="w-[94%] h-[90%] bg-white rounded-lg border-2 p-2.5 flex flex-col items-center justify-center text-center shadow-xs"
+                    >
+                      <span className="text-2xl mb-1">{editEmoji}</span>
+                      <h4
+                        style={{ color: editTitleColor }}
+                        className="text-xs font-extrabold line-clamp-1 leading-tight tracking-tight"
+                      >
+                        {editTitle || "Judul Modul"}
+                      </h4>
+                      <p
+                        style={{ color: editSubtitleColor }}
+                        className="text-[10px] font-medium line-clamp-1 mt-0.5"
+                      >
+                        {editSubtitle || "Subjudul Materi"}
+                      </p>
+                      <span
+                        style={{ color: editTagColor }}
+                        className="text-[9px] font-bold italic mt-1.5 line-clamp-1"
+                      >
+                        {editTagText || `Tantangan Coding: Level ${editLevel}`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Color Presets */}
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold text-[#cc8b56] block">
+                      Tema Warna Pastel:
+                    </span>
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {COLOR_PRESETS.map((preset, idx) => (
+                        <button
+                          type="button"
+                          key={idx}
+                          onClick={() => applyEditColorPreset(preset)}
+                          className={`text-left p-2 rounded-xl border text-xs flex items-center justify-between transition-all cursor-pointer ${
+                            editBgGradient === preset.bgGradient
+                              ? "border-[#cc8b56] bg-[#ffe8d6] font-bold"
+                              : "border-[#e9edc9] hover:bg-[#fdfbf7]"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span>{preset.emoji}</span>
+                            <span className="text-[11px]">{preset.name}</span>
+                          </span>
+                          <div
+                            className="w-4 h-4 rounded-full border border-stone-300 shadow-xs"
+                            style={{ background: preset.borderColor }}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Emoji Picker */}
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-bold text-[#cc8b56] block">
+                      Emoji Ikon:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {EMOJI_OPTIONS.map((e) => (
+                        <button
+                          type="button"
+                          key={e}
+                          onClick={() => setEditEmoji(e)}
+                          className={`w-7 h-7 rounded-lg text-sm flex items-center justify-center transition-all cursor-pointer ${
+                            editEmoji === e
+                              ? "bg-[#cc8b56] text-white shadow-xs scale-110"
+                              : "bg-[#fdfbf7] hover:bg-[#ffe8d6] border border-[#e9edc9]"
+                          }`}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tag Text */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-[#cc8b56] block">
+                      Teks Label Bawah (Tag Text)
+                    </label>
+                    <input
+                      type="text"
+                      value={editTagText}
+                      onChange={(e) => setEditTagText(e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-[#fdfbf7] rounded-lg border border-[#e9edc9] text-xs text-[#333]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer actions */}
+              <div className="pt-4 border-t border-[#e9edc9] flex items-center justify-end gap-3 sticky bottom-0 bg-[#fdfbf7] py-2">
+                <button
+                  type="button"
+                  disabled={editSubmitting}
+                  onClick={() => setEditingMaterial(null)}
+                  className="px-4 py-2.5 rounded-xl border border-[#e8e1d5] text-xs font-bold text-[#5c677d] hover:bg-stone-100 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="px-5 py-2.5 bg-[#cc8b56] hover:bg-[#b87642] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {editSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Menyimpan Perubahan...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

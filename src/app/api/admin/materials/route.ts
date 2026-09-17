@@ -6,7 +6,9 @@ import { put, del } from "@vercel/blob";
 import { MaterialItem } from "@/types/material";
 import {
   getAllMaterials,
+  getMaterialBySlug,
   upsertMaterial,
+  updateMaterial,
   updateMaterialLock,
   updateMaterialsOrder,
   deleteMaterial,
@@ -275,27 +277,205 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const body = await request.json();
-    const { orderedIds } = body as { orderedIds: string[] };
+    const contentType = request.headers.get("content-type") || "";
 
-    if (!orderedIds || !Array.isArray(orderedIds)) {
-      return NextResponse.json(
-        { error: "Format daftar ID tidak valid" },
-        { status: 400 }
+    // 1. If multipart/form-data (Edit Material with possible file/HTML change)
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      const id = (formData.get("id") as string)?.trim();
+
+      if (!id) {
+        return NextResponse.json(
+          { error: "ID materi diperlukan untuk pembaruan" },
+          { status: 400 }
+        );
+      }
+
+      const existingMaterial = await getMaterialBySlug(id);
+      if (!existingMaterial) {
+        return NextResponse.json(
+          { error: "Materi yang akan diperbarui tidak ditemukan" },
+          { status: 404 }
+        );
+      }
+
+      const title = (formData.get("title") as string)?.trim() || existingMaterial.title;
+      const subtitle = (formData.get("subtitle") as string)?.trim() ?? existingMaterial.subtitle;
+      const description = (formData.get("description") as string)?.trim() ?? existingMaterial.description;
+      const category = (formData.get("category") as string)?.trim() || existingMaterial.category;
+      const level = (formData.get("level") as "Pemula" | "Menengah" | "Lanjut") || existingMaterial.level;
+      const estimatedMinutes = parseInt(
+        (formData.get("estimatedMinutes") as string) || String(existingMaterial.estimatedMinutes),
+        10
       );
+      const manualSlideCount = parseInt(
+        (formData.get("slideCount") as string) || String(existingMaterial.slideCount),
+        10
+      );
+      const topicsRaw = formData.get("topics") as string;
+      const isLocked = formData.has("isLocked")
+        ? (formData.get("isLocked") as string) === "true"
+        : existingMaterial.isLocked;
+
+      // Slide 1 Customizer
+      const emoji = (formData.get("emoji") as string)?.trim() || existingMaterial.slide1?.emoji || "📘";
+      const bgGradient =
+        (formData.get("bgGradient") as string) ||
+        existingMaterial.slide1?.bgGradient ||
+        "linear-gradient(135deg, #fdfbf7 0%, #ffe8d6 100%)";
+      const borderColor =
+        (formData.get("borderColor") as string) || existingMaterial.slide1?.borderColor || "#d4a373";
+      const titleColor =
+        (formData.get("titleColor") as string) || existingMaterial.slide1?.titleColor || "#cc8b56";
+      const subtitleColor =
+        (formData.get("subtitleColor") as string) || existingMaterial.slide1?.subtitleColor || "#a98467";
+      const tagColor =
+        (formData.get("tagColor") as string) || existingMaterial.slide1?.tagColor || "#ef233c";
+      const tagText =
+        (formData.get("tagText") as string) || existingMaterial.slide1?.tagText || `Modul ${level}`;
+
+      // Check if replacement file or HTML is provided
+      const file = formData.get("file") as File | null;
+      const htmlContent = (formData.get("htmlContent") as string)?.trim() || "";
+      const customFileName = (formData.get("fileName") as string)?.trim() || "";
+
+      let targetFileName = existingMaterial.fileName;
+      let blobUrl = existingMaterial.blobUrl;
+      let finalSlideCount = manualSlideCount;
+
+      if ((file && file.size > 0) || htmlContent) {
+        let fileBuffer: Buffer;
+        let originalName = "";
+
+        if (file && file.size > 0) {
+          if (!file.name.endsWith(".html")) {
+            return NextResponse.json(
+              { error: "Format file pengganti harus berupa .html" },
+              { status: 400 }
+            );
+          }
+          fileBuffer = Buffer.from(await file.arrayBuffer());
+          originalName = file.name;
+        } else {
+          fileBuffer = Buffer.from(htmlContent, "utf-8");
+          originalName = customFileName || "";
+        }
+
+        const fileContent = fileBuffer.toString("utf-8");
+
+        if (!manualSlideCount || manualSlideCount <= 0) {
+          const slideMatches = fileContent.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+          finalSlideCount = slideMatches && slideMatches.length > 0 ? slideMatches.length : 6;
+        }
+
+        if (originalName) {
+          const safeBaseName = originalName
+            .replace(/\.html$/i, "")
+            .replace(/[^a-zA-Z0-9_-]/g, "_");
+          targetFileName = safeBaseName.startsWith("Presentasi_")
+            ? `${safeBaseName}.html`
+            : `Presentasi_${safeBaseName}.html`;
+        }
+
+        // Upload to Vercel Blob
+        if (process.env.BLOB_READ_WRITE_TOKEN) {
+          try {
+            const blob = await put(`materials/${targetFileName}`, fileBuffer, {
+              access: "public",
+              contentType: "text/html",
+            });
+            blobUrl = blob.url;
+          } catch (blobError) {
+            console.error("Peringatan: Gagal upload ke Vercel Blob saat edit:", blobError);
+          }
+        }
+
+        // Save local copy
+        try {
+          const materialsDir = path.join(process.cwd(), "public", "materials");
+          await fs.mkdir(materialsDir, { recursive: true });
+          await fs.writeFile(path.join(materialsDir, targetFileName), fileBuffer);
+        } catch (fsErr) {
+          console.error("Peringatan: Gagal menyimpan file fisik lokal saat edit:", fsErr);
+        }
+      }
+
+      // Parse topics
+      let topics = existingMaterial.topics;
+      if (typeof topicsRaw === "string") {
+        topics = topicsRaw
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0);
+      }
+
+      const updatedData: Partial<MaterialItem> = {
+        title,
+        subtitle,
+        description,
+        category,
+        level,
+        slideCount: finalSlideCount,
+        estimatedMinutes: isNaN(estimatedMinutes) ? 20 : estimatedMinutes,
+        fileName: targetFileName,
+        blobUrl,
+        topics: topics.length > 0 ? topics : ["Python", category],
+        isLocked,
+        slide1: {
+          emoji,
+          bgGradient,
+          borderColor,
+          titleColor,
+          subtitleColor,
+          tagColor,
+          tagText,
+        },
+      };
+
+      const result = await updateMaterial(id, updatedData);
+      const allMaterials = await getAllMaterials();
+
+      return NextResponse.json({
+        success: true,
+        message: `Materi "${title}" berhasil diperbarui!`,
+        material: result,
+        materials: allMaterials,
+      });
     }
 
-    // Update order in Neon DB and local JSON
-    const updatedMaterials = await updateMaterialsOrder(orderedIds);
+    // 2. If JSON
+    const body = await request.json();
 
-    return NextResponse.json({
-      success: true,
-      message: "Urutan materi berhasil diperbarui!",
-      materials: updatedMaterials,
-    });
+    // Reorder
+    if (body.orderedIds && Array.isArray(body.orderedIds)) {
+      const updatedMaterials = await updateMaterialsOrder(body.orderedIds);
+      return NextResponse.json({
+        success: true,
+        message: "Urutan materi berhasil diperbarui!",
+        materials: updatedMaterials,
+      });
+    }
+
+    // Edit by JSON payload
+    if (body.id) {
+      const { id, ...updates } = body;
+      const result = await updateMaterial(id, updates);
+      if (!result) {
+        return NextResponse.json({ error: "Materi tidak ditemukan" }, { status: 404 });
+      }
+      const allMaterials = await getAllMaterials();
+      return NextResponse.json({
+        success: true,
+        message: `Materi "${result.title}" berhasil diperbarui!`,
+        material: result,
+        materials: allMaterials,
+      });
+    }
+
+    return NextResponse.json({ error: "Payload tidak valid" }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error?.message || "Gagal mengubah urutan materi" },
+      { error: error?.message || "Gagal memperbarui materi" },
       { status: 500 }
     );
   }
