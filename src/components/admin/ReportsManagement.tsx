@@ -18,8 +18,9 @@ import {
   FileText,
   Mail,
   X,
+  Code2,
 } from "lucide-react";
-import { Student, Report } from "@/types/student";
+import { Student, Report, Submission } from "@/types/student";
 import { MaterialItem } from "@/types/material";
 
 export function ReportsManagement() {
@@ -35,6 +36,16 @@ export function ReportsManagement() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Student Submissions State
+  const [studentSubmissions, setStudentSubmissions] = useState<Record<string, Submission>>({});
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [inspectingSubmission, setInspectingSubmission] = useState<{
+    submission: Submission;
+    materialTitle: string;
+    orderNumber: string;
+  } | null>(null);
+  const [copiedInspectCode, setCopiedInspectCode] = useState(false);
 
   // Status & Feedback
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -87,6 +98,37 @@ export function ReportsManagement() {
 
   // Selected Student Object
   const selectedStudent = students.find((s) => s.id === selectedStudentId);
+
+  // Fetch Submissions for Selected Student
+  useEffect(() => {
+    if (!selectedStudentId) {
+      setStudentSubmissions({});
+      return;
+    }
+
+    async function fetchSubmissions() {
+      setLoadingSubmissions(true);
+      try {
+        const res = await fetch(`/api/admin/submissions?studentId=${encodeURIComponent(selectedStudentId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const map: Record<string, Submission> = {};
+          if (Array.isArray(data.submissions)) {
+            data.submissions.forEach((s: Submission) => {
+              map[s.materialSlug] = s;
+            });
+          }
+          setStudentSubmissions(map);
+        }
+      } catch (err) {
+        console.error("Gagal memuat kodingan siswa:", err);
+      } finally {
+        setLoadingSubmissions(false);
+      }
+    }
+
+    fetchSubmissions();
+  }, [selectedStudentId]);
 
   // Toggle Material Selection (Support Multi-Material)
   function toggleMaterial(slug: string) {
@@ -350,9 +392,29 @@ export function ReportsManagement() {
                 Klik untuk memilih satu atau beberapa modul yang dipelajari pada sesi pertemuan ini:
               </p>
 
-              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {/* Notifikasi Kodingan Terkumpul & Tombol Pilih Cepat */}
+              {selectedStudentId && Object.keys(studentSubmissions).length > 0 && (
+                <div className="mb-2 p-2.5 rounded-xl bg-emerald-50/90 border border-emerald-200 flex items-center justify-between gap-2 flex-wrap animate-in fade-in duration-150">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-900 font-medium">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>
+                      Siswa ini telah mengumpulkan <strong>{Object.keys(studentSubmissions).length} kodingan modul</strong>.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSlugs(Object.keys(studentSubmissions))}
+                    className="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white text-[11px] font-semibold rounded-lg transition-colors cursor-pointer"
+                  >
+                    Pilih Modul Terkumpul
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
                 {materials.map((mat) => {
                   const isChecked = selectedSlugs.includes(mat.slug);
+                  const sub = studentSubmissions[mat.slug];
                   return (
                     <div
                       key={mat.id}
@@ -360,6 +422,8 @@ export function ReportsManagement() {
                       className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
                         isChecked
                           ? "bg-amber-50/70 border-amber-500 shadow-2xs"
+                          : sub
+                          ? "bg-emerald-50/30 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-50/50"
                           : "bg-white border-[#e5e0d8] hover:border-[#d4a373]/60 hover:bg-stone-50"
                       }`}
                     >
@@ -379,6 +443,42 @@ export function ReportsManagement() {
                             {mat.category} &bull; Level {mat.level}
                           </div>
                         </div>
+                      </div>
+
+                      {/* Status Pengumpulan Kodingan Siswa */}
+                      <div className="flex items-center gap-2 shrink-0">
+                        {selectedStudentId ? (
+                          loadingSubmissions ? (
+                            <span className="text-[10px] text-stone-400">Memeriksa...</span>
+                          ) : sub ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold shadow-2xs">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                <span>Kode Terkumpul</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setInspectingSubmission({
+                                    submission: sub,
+                                    materialTitle: mat.title,
+                                    orderNumber: mat.orderNumber,
+                                  });
+                                }}
+                                className="px-2 py-1 rounded-lg bg-white hover:bg-stone-100 active:bg-stone-200 text-stone-700 hover:text-stone-950 text-[10px] font-semibold border border-stone-300 transition-colors inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                                title="Lihat isi kodingan siswa"
+                              >
+                                <Code2 className="w-3 h-3 text-stone-600" />
+                                <span>Intip</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-stone-400 font-medium">
+                              Belum ada kode
+                            </span>
+                          )
+                        ) : null}
                       </div>
                     </div>
                   );
@@ -532,7 +632,7 @@ export function ReportsManagement() {
                       </div>
 
                       <div className="text-xs text-[#57534e]">
-                        Orang Tua: <span className="font-medium text-[#1c1917]">{rep.parentEmail || "—"}</span>
+                        Orang Tua: <span className="font-medium text-[#1c1917]">{rep.parentEmail || "-"}</span>
                       </div>
 
                       <div className="text-[11px] text-stone-400">
@@ -545,7 +645,7 @@ export function ReportsManagement() {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
-                          : "—"}
+                          : "-"}
                       </div>
                     </div>
                   </div>
@@ -577,6 +677,118 @@ export function ReportsManagement() {
           </div>
         )}
       </div>
+
+      {/* Modal Pratinjau Kodingan Siswa */}
+      {inspectingSubmission && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setInspectingSubmission(null);
+          }}
+        >
+          <div className="w-full max-w-3xl bg-stone-950 rounded-2xl sm:rounded-3xl border border-stone-800 shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="bg-stone-900 px-5 py-3.5 border-b border-stone-800 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/50">
+                    MODUL {inspectingSubmission.orderNumber}
+                  </span>
+                  <h3 className="text-sm sm:text-base font-bold text-white truncate">
+                    {inspectingSubmission.materialTitle}
+                  </h3>
+                </div>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  Karya Siswa: <span className="text-white font-semibold">{selectedStudent?.name}</span>
+                  {inspectingSubmission.submission.updatedAt && (
+                    <span className="ml-2 text-stone-500">
+                      &bull; Terkumpul:{" "}
+                      {new Date(inspectingSubmission.submission.updatedAt).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (inspectingSubmission.submission.codeContent) {
+                      navigator.clipboard.writeText(inspectingSubmission.submission.codeContent);
+                      setCopiedInspectCode(true);
+                      setTimeout(() => setCopiedInspectCode(false), 2000);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white text-xs font-medium border border-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Salin kode program siswa"
+                >
+                  {copiedInspectCode ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-stone-400" />
+                      <span>Salin</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInspectingSubmission(null)}
+                  className="p-1.5 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer"
+                  aria-label="Tutup jendela pratinjau"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body / Code View */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1">
+              {inspectingSubmission.submission.notes && (
+                <div className="p-3 rounded-xl bg-stone-900 border border-stone-800 text-xs text-stone-300">
+                  <span className="font-semibold text-amber-400 block mb-1">Catatan Siswa:</span>
+                  <p className="whitespace-pre-line leading-relaxed">{inspectingSubmission.submission.notes}</p>
+                </div>
+              )}
+
+              <div className="rounded-xl border border-stone-800 overflow-hidden bg-[#1e1e1e]">
+                <div className="bg-[#252526] px-4 py-2 border-b border-[#333333] flex items-center justify-between text-xs text-stone-400">
+                  <span className="font-mono">{inspectingSubmission.submission.fileName || "main.py"}</span>
+                  <span className="uppercase text-[10px] text-amber-400 font-bold tracking-wider">
+                    {inspectingSubmission.submission.language || "python"}
+                  </span>
+                </div>
+                <pre className="p-4 text-xs font-mono text-[#d4d4d4] overflow-x-auto leading-relaxed max-h-96 selection:bg-[#264f78]">
+                  <code>{inspectingSubmission.submission.codeContent || "# (Tidak ada kode teks, hanya berkas terunggah)"}</code>
+                </pre>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-stone-900 px-5 py-3 border-t border-stone-800 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setInspectingSubmission(null)}
+                className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+              >
+                Tutup Pratinjau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

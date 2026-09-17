@@ -15,11 +15,13 @@ import {
   X,
   ShieldCheck,
   FileText,
+  Code2,
 } from "lucide-react";
-import { Student } from "@/types/student";
+import { Student, Submission } from "@/types/student";
 
 export function StudentsManagement() {
   const [students, setStudents] = useState<Student[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -54,13 +56,17 @@ export function StudentsManagement() {
     }
   }, [notification]);
 
-  // Fetch Students
+  // Fetch Students & Submissions
   async function fetchStudents() {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/admin/students");
-      if (res.ok) {
-        const data = await res.json();
+      const [resStudents, resSubmissions] = await Promise.all([
+        fetch("/api/admin/students"),
+        fetch("/api/admin/submissions"),
+      ]);
+
+      if (resStudents.ok) {
+        const data = await resStudents.json();
         setStudents(Array.isArray(data) ? data : []);
       } else {
         setNotification({
@@ -68,8 +74,13 @@ export function StudentsManagement() {
           message: "Gagal memuat data siswa dari server.",
         });
       }
+
+      if (resSubmissions.ok) {
+        const subData = await resSubmissions.json();
+        setSubmissions(Array.isArray(subData.submissions) ? subData.submissions : []);
+      }
     } catch (err) {
-      console.error("Error fetching students:", err);
+      console.error("Error fetching students and submissions:", err);
       setNotification({
         type: "error",
         message: "Terjadi gangguan koneksi saat memuat data siswa.",
@@ -282,8 +293,8 @@ export function StudentsManagement() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-[#e5e0d8] flex items-center gap-3.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-xl border border-[#e5e0d8] flex items-center gap-3.5 shadow-2xs">
           <div className="w-10 h-10 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0">
             <User className="w-5 h-5" />
           </div>
@@ -293,9 +304,21 @@ export function StudentsManagement() {
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-[#e5e0d8] flex items-center gap-3.5">
+        <div className="bg-white p-4 rounded-xl border border-[#e5e0d8] flex items-center gap-3.5 shadow-2xs">
           <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800 shrink-0">
-            <Mail className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <div className="text-xs text-[#57534e] font-medium">Total Tugas Terkumpul</div>
+            <div className="text-xl font-bold text-[#1c1917]">
+              {submissions.length} Tugas
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-[#e5e0d8] flex items-center gap-3.5 shadow-2xs">
+          <div className="w-10 h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-800 shrink-0">
+            <Mail className="w-5 h-5 text-blue-600" />
           </div>
           <div>
             <div className="text-xs text-[#57534e] font-medium">Email Orang Tua Terhubung</div>
@@ -349,61 +372,76 @@ export function StudentsManagement() {
                   <th className="px-5 py-3.5">Nama Siswa</th>
                   <th className="px-5 py-3.5">Email Siswa (Google Auth)</th>
                   <th className="px-5 py-3.5">Data Orang Tua</th>
+                  <th className="px-5 py-3.5">Tugas Koding</th>
                   <th className="px-5 py-3.5">Catatan</th>
                   <th className="px-5 py-3.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e5e0d8]">
-                {filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-stone-50/70 transition-colors">
-                    <td className="px-5 py-4">
-                      <div className="font-semibold text-[#1c1917]">{student.name}</div>
-                      <div className="text-[11px] font-mono text-stone-400 mt-0.5">ID: {student.id}</div>
-                    </td>
+                {filteredStudents.map((student) => {
+                  const studentSubCount = submissions.filter((sub) => sub.studentId === student.id).length;
+                  return (
+                    <tr key={student.id} className="hover:bg-stone-50/70 transition-colors">
+                      <td className="px-5 py-4">
+                        <div className="font-semibold text-[#1c1917]">{student.name}</div>
+                        <div className="text-[11px] font-mono text-stone-400 mt-0.5">ID: {student.id}</div>
+                      </td>
 
-                    <td className="px-5 py-4">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-xs font-mono">
-                        <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                        {student.studentEmail}
-                      </div>
-                    </td>
+                      <td className="px-5 py-4">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-xs font-mono">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                          {student.studentEmail}
+                        </div>
+                      </td>
 
-                    <td className="px-5 py-4">
-                      <div className="text-xs text-[#1c1917] font-medium">
-                        {student.parentName || "—"}
-                      </div>
-                      <div className="inline-flex items-center gap-1 text-xs text-[#57534e] mt-0.5">
-                        <Mail className="w-3 h-3 text-stone-400" />
-                        <span>{student.parentEmail}</span>
-                      </div>
-                    </td>
+                      <td className="px-5 py-4">
+                        <div className="text-xs text-[#1c1917] font-medium">
+                          {student.parentName || "-"}
+                        </div>
+                        <div className="inline-flex items-center gap-1 text-xs text-[#57534e] mt-0.5">
+                          <Mail className="w-3 h-3 text-stone-400" />
+                          <span>{student.parentEmail}</span>
+                        </div>
+                      </td>
 
-                    <td className="px-5 py-4">
-                      <span className="text-xs text-[#57534e] line-clamp-1 max-w-[180px]">
-                        {student.notes || "—"}
-                      </span>
-                    </td>
+                      <td className="px-5 py-4">
+                        {studentSubCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-semibold shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>{studentSubCount} Terkumpul</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs text-stone-400 font-medium">Belum ada</span>
+                        )}
+                      </td>
 
-                    <td className="px-5 py-4 text-right">
-                      <div className="inline-flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(student)}
-                          title="Edit Siswa"
-                          className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingStudent(student)}
-                          title="Hapus Siswa"
-                          className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-5 py-4">
+                        <span className="text-xs text-[#57534e] line-clamp-1 max-w-[180px]">
+                          {student.notes || "-"}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-4 text-right">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(student)}
+                            title="Edit Siswa"
+                            className="p-1.5 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-100 transition-colors cursor-pointer"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingStudent(student)}
+                            title="Hapus Siswa"
+                            className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

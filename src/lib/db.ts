@@ -635,6 +635,41 @@ export async function getAllSubmissionsForMaterial(materialSlug: string): Promis
   }
 }
 
+export async function getSubmissionsByStudent(studentId: string): Promise<Submission[]> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      FROM submissions
+      WHERE student_id = ${studentId}
+      ORDER BY updated_at DESC
+    `;
+    return (rows || []).map(mapRowToSubmission);
+  } catch (err) {
+    console.error("Gagal mengambil submissions berdasarkan siswa:", err);
+    return [];
+  }
+}
+
+export async function getAllSubmissions(): Promise<Submission[]> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      FROM submissions
+      ORDER BY updated_at DESC
+    `;
+    return (rows || []).map(mapRowToSubmission);
+  } catch (err) {
+    console.error("Gagal mengambil seluruh submissions:", err);
+    return [];
+  }
+}
+
 // ==========================================
 // REPORT MANAGEMENT FUNCTIONS
 // ==========================================
