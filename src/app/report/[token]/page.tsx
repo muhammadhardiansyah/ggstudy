@@ -2,17 +2,12 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { getReportByToken } from "@/lib/db";
-import { LevelBadge } from "@/components/LevelBadge";
 import { ReportCodeViewer } from "@/components/ReportCodeViewer";
+import { ReportMaterialSection } from "@/components/ReportMaterialSection";
 import {
   Calendar,
-  Layers,
   Camera,
   MessageSquare,
-  CheckCircle2,
-  Clock,
-  BookOpen,
-  Award,
 } from "lucide-react";
 
 interface Props {
@@ -109,82 +104,8 @@ export default async function StudentReportPage({ params }: Props) {
         </div>
       )}
 
-      {/* 2. Materi Pembelajaran yang Dikuasai (Tampilan Umum & Indah) */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-[#1c1917]">
-            <BookOpen className="w-5 h-5 text-amber-700" />
-            <h2 className="text-base sm:text-lg font-bold">
-              Materi yang Dipelajari ({materials.length} Modul)
-            </h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          {materials.map((mat) => (
-            <div
-              key={mat.id}
-              className="bg-white rounded-2xl border border-[#e5e0d8] p-5 sm:p-6 shadow-xs space-y-3"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#f0eae1] pb-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-200">
-                    MODUL {mat.orderNumber}
-                  </span>
-                  <span className="text-xs text-stone-300 font-bold hidden sm:inline">&bull;</span>
-                  <span className="text-xs font-semibold text-[#57534e] uppercase tracking-wider">
-                    {mat.category}
-                  </span>
-                  <span className="text-xs text-stone-300 font-bold hidden sm:inline">&bull;</span>
-                  <LevelBadge level={mat.level} />
-                </div>
-
-                <div className="flex items-center gap-3 text-xs text-[#57534e]">
-                  <span className="flex items-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-stone-400" />
-                    {mat.slideCount} Slide
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-stone-400" />
-                    ~{mat.estimatedMinutes} Menit
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#1c1917]">
-                  {mat.title}
-                </h3>
-                <p className="text-xs sm:text-sm font-semibold text-amber-800 mt-0.5">
-                  {mat.subtitle}
-                </p>
-                <p className="text-xs sm:text-sm text-[#57534e] mt-2 leading-relaxed">
-                  {mat.description}
-                </p>
-              </div>
-
-              {/* Topics tags */}
-              {mat.topics && mat.topics.length > 0 && (
-                <div className="pt-2">
-                  <span className="text-[11px] font-semibold text-stone-500 block mb-1.5">
-                    Konsep Kunci yang Dikuasai:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {mat.topics.map((t, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2.5 py-1 rounded-lg bg-stone-50 border border-[#e5e0d8] text-stone-700 text-xs font-medium"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* 2. Materi Pembelajaran yang Dikuasai (Dengan Modal Pratinjau Slide Opsional) */}
+      <ReportMaterialSection materials={materials} />
 
       {/* 3. Karya Kodingan Siswa (Tampilan Khusus VS Code Dark Style) */}
       <ReportCodeViewer submissions={submissions} />
