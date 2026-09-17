@@ -50,6 +50,8 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const htmlContent = (formData.get("htmlContent") as string)?.trim() || "";
+    const customFileName = (formData.get("fileName") as string)?.trim() || "";
     const title = (formData.get("title") as string)?.trim() || "";
     const subtitle = (formData.get("subtitle") as string)?.trim() || "";
     const description = (formData.get("description") as string)?.trim() || "";
@@ -70,21 +72,30 @@ export async function POST(request: Request) {
     const tagColor = (formData.get("tagColor") as string) || "#ef233c";
     const tagText = (formData.get("tagText") as string) || `Modul ${level}`;
 
-    if (!file || !title) {
+    if ((!file && !htmlContent) || !title) {
       return NextResponse.json(
-        { error: "File presentasi (.html) dan judul materi wajib diisi." },
+        { error: "Konten materi HTML (berkas atau teks) dan judul materi wajib diisi." },
         { status: 400 }
       );
     }
 
-    if (!file.name.endsWith(".html")) {
-      return NextResponse.json(
-        { error: "Format file harus berupa .html" },
-        { status: 400 }
-      );
+    let fileBuffer: Buffer;
+    let originalName = "";
+
+    if (file) {
+      if (!file.name.endsWith(".html")) {
+        return NextResponse.json(
+          { error: "Format file harus berupa .html" },
+          { status: 400 }
+        );
+      }
+      fileBuffer = Buffer.from(await file.arrayBuffer());
+      originalName = file.name;
+    } else {
+      fileBuffer = Buffer.from(htmlContent, "utf-8");
+      originalName = customFileName || "";
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const fileContent = fileBuffer.toString("utf-8");
 
     // Auto-detect slide count from .slide classes
@@ -107,9 +118,16 @@ export async function POST(request: Request) {
     }
 
     // Determine target HTML file name
-    const safeBaseName = file.name
-      .replace(/\.html$/i, "")
-      .replace(/[^a-zA-Z0-9_-]/g, "_");
+    let safeBaseName = "";
+    if (originalName) {
+      safeBaseName = originalName
+        .replace(/\.html$/i, "")
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
+    }
+    if (!safeBaseName) {
+      safeBaseName = finalSlug.replace(/-/g, "_");
+    }
+
     let targetFileName = `${safeBaseName}.html`;
     if (!targetFileName.startsWith("Presentasi_")) {
       targetFileName = `Presentasi_${targetFileName}`;

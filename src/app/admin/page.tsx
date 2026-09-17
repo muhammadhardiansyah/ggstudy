@@ -97,7 +97,10 @@ export default function AdminPage() {
   const [reordering, setReordering] = useState(false);
 
   // Upload Form State
+  const [inputMode, setInputMode] = useState<"file" | "paste">("file");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [pastedHtml, setPastedHtml] = useState("");
+  const [customFileName, setCustomFileName] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
@@ -237,6 +240,30 @@ export default function AdminPage() {
     reader.readAsText(file);
   }
 
+  // Handle pasted HTML text change and auto-detect slides
+  function handlePastedHtmlChange(text: string) {
+    setPastedHtml(text);
+
+    if (text.trim()) {
+      const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+      const count = matches && matches.length > 0 ? matches.length : 6;
+      setDetectedSlideCount(count);
+      setSlideCount(count);
+
+      // If title is empty, attempt to infer from <title> or <h1>
+      if (!title) {
+        const titleMatch = text.match(/<title[^>]*>([^<]+)<\/title>/i) || text.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+        if (titleMatch && titleMatch[1]) {
+          const rawTitle = titleMatch[1].trim();
+          setTitle(rawTitle);
+          setSubtitle(`Pembelajaran materi ${rawTitle}`);
+        }
+      }
+    } else {
+      setDetectedSlideCount(null);
+    }
+  }
+
   // Apply color preset
   function applyColorPreset(preset: (typeof COLOR_PRESETS)[0]) {
     setBgGradient(preset.bgGradient);
@@ -255,8 +282,12 @@ export default function AdminPage() {
 
   async function handleUploadSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedFile) {
+    if (inputMode === "file" && !selectedFile) {
       setNotification({ type: "error", message: "Silakan pilih file presentasi (.html)" });
+      return;
+    }
+    if (inputMode === "paste" && !pastedHtml.trim()) {
+      setNotification({ type: "error", message: "Silakan tempel teks kode HTML materi presentasi" });
       return;
     }
 
@@ -270,7 +301,14 @@ export default function AdminPage() {
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      if (inputMode === "file" && selectedFile) {
+        formData.append("file", selectedFile);
+      } else {
+        formData.append("htmlContent", pastedHtml);
+        if (customFileName.trim()) {
+          formData.append("fileName", customFileName.trim());
+        }
+      }
       formData.append("title", title);
       formData.append("subtitle", subtitle);
       formData.append("description", description);
@@ -296,11 +334,13 @@ export default function AdminPage() {
       if (res.ok && data.success) {
         setNotification({
           type: "success",
-          message: `Materi "${title}" berhasil disimpan! Jangan lupa jalankan git push jika ingin perubahan aktif di Vercel.`,
+          message: `Materi "${title}" berhasil disimpan ke database Neon & Vercel Blob!`,
         });
 
         // Reset form
         setSelectedFile(null);
+        setPastedHtml("");
+        setCustomFileName("");
         if (fileInputRef.current) fileInputRef.current.value = "";
         setTitle("");
         setSubtitle("");
@@ -322,10 +362,15 @@ export default function AdminPage() {
   }
 
   async function handleGenerateWithAi() {
-    if (!selectedFile) {
+    const htmlToAnalyze = inputMode === "file" ? (selectedFile ? await selectedFile.text() : "") : pastedHtml;
+    const fileNameForAi = inputMode === "file" ? (selectedFile?.name || "Presentasi.html") : (customFileName || "Presentasi.html");
+
+    if (!htmlToAnalyze || !htmlToAnalyze.trim()) {
       setNotification({
         type: "error",
-        message: "Silakan pilih file presentasi (.html) terlebih dahulu untuk dianalisis oleh AI.",
+        message: inputMode === "file"
+          ? "Silakan pilih file presentasi (.html) terlebih dahulu untuk dianalisis oleh AI."
+          : "Silakan tempel teks presentasi HTML terlebih dahulu di area teks untuk dianalisis oleh AI.",
       });
       return;
     }
@@ -334,13 +379,12 @@ export default function AdminPage() {
     setNotification(null);
 
     try {
-      const htmlContent = await selectedFile.text();
       const res = await fetch("/api/admin/generate-metadata", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          htmlContent,
-          fileName: selectedFile.name,
+          htmlContent: htmlToAnalyze,
+          fileName: fileNameForAi,
         }),
       });
 
@@ -717,54 +761,133 @@ export default function AdminPage() {
                 1. Berkas &amp; Informasi Utama
               </h2>
 
-              {/* File Upload Zone */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
-                  File Presentasi HTML (.html) *
-                </label>
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-                    selectedFile
-                      ? "border-[#cc8b56] bg-[#fdfbf7]"
-                      : "border-[#d4a373]/60 bg-[#fdfbf7] hover:bg-[#fff9f3]"
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".html"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-[#ffe8d6] text-[#cc8b56] flex items-center justify-center">
-                      <UploadCloud className="w-5 h-5" />
+              {/* Input Mode Switcher & Content Zone */}
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-[#cc8b56] uppercase tracking-wider block">
+                    Sumber Materi HTML *
+                  </label>
+                  <div className="inline-flex p-1 bg-[#f5efe6] rounded-xl border border-[#e8e1d5] gap-1 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("file")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        inputMode === "file"
+                          ? "bg-white text-[#cc8b56] shadow-xs"
+                          : "text-[#a98467] hover:text-[#cc8b56]"
+                      }`}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" />
+                      Unggah Berkas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInputMode("paste")}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        inputMode === "paste"
+                          ? "bg-white text-[#cc8b56] shadow-xs"
+                          : "text-[#a98467] hover:text-[#cc8b56]"
+                      }`}
+                    >
+                      <FileCode className="w-3.5 h-3.5" />
+                      Tempel Teks HTML
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mode 1: Unggah Berkas */}
+                {inputMode === "file" ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
+                      selectedFile
+                        ? "border-[#cc8b56] bg-[#fdfbf7]"
+                        : "border-[#d4a373]/60 bg-[#fdfbf7] hover:bg-[#fff9f3]"
+                    }`}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".html"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-10 h-10 rounded-xl bg-[#ffe8d6] text-[#cc8b56] flex items-center justify-center">
+                        <UploadCloud className="w-5 h-5" />
+                      </div>
+                      {selectedFile ? (
+                        <div>
+                          <p className="text-xs font-bold text-[#cc8b56]">{selectedFile.name}</p>
+                          <p className="text-[11px] text-[#a98467]">
+                            {(selectedFile.size / 1024).toFixed(1)} KB &bull; Klik untuk mengganti berkas
+                          </p>
+                          {detectedSlideCount !== null && (
+                            <span className="inline-block mt-2 px-2.5 py-0.5 rounded-lg bg-green-100 text-green-800 text-[10px] font-bold">
+                              &check; Otomatis terdeteksi {detectedSlideCount} slide
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-bold text-[#cc8b56]">
+                            Klik untuk memilih berkas presentasi .html
+                          </p>
+                          <p className="text-[11px] text-[#a98467]">
+                            Berkas akan diunggah ke Vercel Blob dan disimpan secara online
+                          </p>
+                        </div>
+                      )}
                     </div>
-                    {selectedFile ? (
-                      <div>
-                        <p className="text-xs font-bold text-[#cc8b56]">{selectedFile.name}</p>
-                        <p className="text-[11px] text-[#a98467]">
-                          {(selectedFile.size / 1024).toFixed(1)} KB &bull; Klik untuk mengganti
-                        </p>
+                  </div>
+                ) : (
+                  /* Mode 2: Tempel Teks HTML */
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <textarea
+                        rows={8}
+                        value={pastedHtml}
+                        onChange={(e) => handlePastedHtmlChange(e.target.value)}
+                        placeholder="<!DOCTYPE html>&#10;<html>&#10;  <!-- Tempelkan seluruh kode HTML slide materi Anda di sini -->&#10;  <div class=&quot;slide&quot;>...</div>&#10;</html>"
+                        className="w-full p-3.5 bg-[#fdfbf7] rounded-2xl border-2 border-[#d4a373]/50 text-xs font-mono text-[#333] placeholder:text-stone-400 focus:outline-none focus:border-[#cc8b56] leading-relaxed resize-y min-h-[180px]"
+                      />
+                      <div className="flex items-center justify-between text-[11px] text-[#a98467] px-1">
+                        <span>
+                          {pastedHtml.trim() ? (
+                            `${(new Blob([pastedHtml]).size / 1024).toFixed(1)} KB teks HTML`
+                          ) : (
+                            "Tempelkan kode sumber slide HTML lengkap"
+                          )}
+                        </span>
                         {detectedSlideCount !== null && (
-                          <span className="inline-block mt-2 px-2.5 py-0.5 rounded-lg bg-green-100 text-green-800 text-[10px] font-bold">
+                          <span className="px-2 py-0.5 rounded-lg bg-green-100 text-green-800 text-[10px] font-bold">
                             &check; Otomatis terdeteksi {detectedSlideCount} slide
                           </span>
                         )}
                       </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs font-bold text-[#cc8b56]">
-                          Klik untuk memilih file presentasi .html
-                        </p>
-                        <p className="text-[11px] text-[#a98467]">
-                          File akan disimpan di folder <code className="font-mono">public/materials</code>
-                        </p>
+                    </div>
+
+                    {/* Custom File Name Input */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-[#a98467] uppercase tracking-wider block">
+                        Nama Berkas Output (Opsional)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={customFileName}
+                          onChange={(e) => setCustomFileName(e.target.value)}
+                          placeholder="contoh: modul_09.html (opsional)"
+                          className="w-full pl-8 pr-3 py-2 bg-[#fdfbf7] rounded-xl border border-[#e9edc9] text-xs font-mono text-[#333] focus:outline-none focus:border-[#d4a373]"
+                        />
+                        <FileCode className="w-3.5 h-3.5 text-[#a98467] absolute left-2.5 top-1/2 -translate-y-1/2" />
                       </div>
-                    )}
+                      <p className="text-[10px] text-stone-400 italic">
+                        Jika dikosongkan, nama berkas akan otomatis dibuat dari judul modul.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* AI Auto-Fill Action Card */}
@@ -781,16 +904,18 @@ export default function AdminPage() {
                       </span>
                     </h3>
                     <p className="text-[11px] text-[#a98467] leading-relaxed">
-                      {selectedFile
-                        ? "Klik tombol di samping agar AI membaca isi file presentasi dan mengisi seluruh form secara otomatis."
-                        : "Pilih file presentasi .html di atas terlebih dahulu untuk mengaktifkan AI."}
+                      {(inputMode === "file" ? Boolean(selectedFile) : Boolean(pastedHtml.trim()))
+                        ? "Klik tombol di samping agar AI membaca isi materi dan mengisi seluruh form secara otomatis."
+                        : inputMode === "file"
+                        ? "Pilih file presentasi .html di atas terlebih dahulu untuk mengaktifkan AI."
+                        : "Tempel kode HTML materi di atas terlebih dahulu untuk mengaktifkan AI."}
                     </p>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  disabled={generatingAi || !selectedFile}
+                  disabled={generatingAi || !(inputMode === "file" ? Boolean(selectedFile) : Boolean(pastedHtml.trim()))}
                   onClick={handleGenerateWithAi}
                   className="self-stretch sm:self-auto px-4 py-2.5 bg-[#cc8b56] hover:bg-[#b87642] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                 >
