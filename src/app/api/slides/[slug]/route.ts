@@ -6,10 +6,72 @@ import path from "path";
 export const dynamic = "force-dynamic";
 
 const PORTAL_BRIDGE_SCRIPT = `
+<style id="ggstudy-anti-copy">
+  /* Multi-Layer Anti-Copy & Anti-Selection Protection */
+  *, *::before, *::after {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+  }
+  input, textarea {
+    -webkit-user-select: auto !important;
+    user-select: auto !important;
+  }
+</style>
 <script id="ggstudy-portal-bridge">
 (function() {
   if (window.__ggstudy_bridge_ready) return;
   window.__ggstudy_bridge_ready = true;
+
+  // Anti-Copy, Anti-Context-Menu & Anti-Selection Event Blockers
+  function enableAntiCopyProtection() {
+    // 1. Disable right-click context menu
+    document.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    });
+
+    // 2. Disable copy, cut, selectstart, dragstart
+    document.addEventListener('copy', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    document.addEventListener('cut', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    document.addEventListener('selectstart', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    document.addEventListener('dragstart', function(e) {
+      e.preventDefault();
+      return false;
+    });
+
+    // 3. Disable keyboard shortcuts for copy, cut, select all, view source, save, DevTools
+    document.addEventListener('keydown', function(e) {
+      var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      var ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
+      var key = e.key ? e.key.toLowerCase() : '';
+
+      // Block copy (c), cut (x), select-all (a), view-source (u), save (s)
+      if (ctrlOrCmd && (key === 'c' || key === 'x' || key === 'a' || key === 'u' || key === 's')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Block DevTools F12 or Ctrl+Shift+I / J / C
+      if (e.key === 'F12' || (ctrlOrCmd && e.shiftKey && (key === 'i' || key === 'j' || key === 'c'))) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
+  }
 
   function getSlides() {
     return document.querySelectorAll('.slide');
@@ -129,8 +191,9 @@ const PORTAL_BRIDGE_SCRIPT = `
     setTimeout(sendSlideUpdate, 50);
   });
 
-  // Initial update
+  // Initial update & enable anti-copy protection
   function init() {
+    enableAntiCopyProtection();
     attachHooks();
     sendSlideUpdate();
   }

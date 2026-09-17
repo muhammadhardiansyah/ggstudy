@@ -157,7 +157,8 @@ export const SlideViewer: React.FC<SlideViewerProps> = ({ material }) => {
   return (
     <div
       ref={containerRef}
-      className={`flex flex-col bg-stone-900 text-stone-100 ${
+      onContextMenu={(e) => e.preventDefault()}
+      className={`flex flex-col bg-stone-900 text-stone-100 select-none ${
         isFullscreen ? "fixed inset-0 z-50 h-screen w-screen" : "rounded-2xl overflow-hidden border border-stone-800 shadow-xl"
       }`}
     >
