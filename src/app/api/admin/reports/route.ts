@@ -153,8 +153,9 @@ export async function POST(req: NextRequest) {
           .map((t) => `<li style="margin-bottom: 4px; font-weight: 600; color: #1c1917;">${t}</li>`)
           .join("");
 
-        await resend.emails.send({
-          from: "GG Study <onboarding@resend.dev>",
+        const fromEmail = process.env.RESEND_FROM_EMAIL || "GG Study <onboarding@resend.dev>";
+        const sendResult = await resend.emails.send({
+          from: fromEmail,
           to: student.parentEmail,
           subject: `Laporan Belajar Python: ${student.name} - ${materialDisplayTitle}`,
           html: `
@@ -204,7 +205,13 @@ export async function POST(req: NextRequest) {
           `,
         });
 
-        emailSent = true;
+        if (sendResult.error) {
+          console.error("Resend API returned error:", sendResult.error);
+          emailSent = false;
+          emailError = sendResult.error.message;
+        } else {
+          emailSent = true;
+        }
       } catch (mailErr: any) {
         console.error("Gagal mengirim email via Resend:", mailErr);
         emailError = mailErr?.message || "Gagal memicu Resend API";
