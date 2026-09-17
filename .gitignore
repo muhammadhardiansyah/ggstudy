@@ -39,3 +39,6 @@ AGENTS.md
 implementation_plan.md
 DESIGN.md
 PANDUAN_TAMBAH_MATERI.md
+
+# local materials cache
+/public/materials/

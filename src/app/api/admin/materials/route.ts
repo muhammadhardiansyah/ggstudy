@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     // Auto-detect slide count from .slide classes
     let detectedSlideCount = manualSlideCount;
     if (!detectedSlideCount || detectedSlideCount <= 0) {
-      const slideMatches = fileContent.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+      const slideMatches = fileContent.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
       detectedSlideCount = slideMatches && slideMatches.length > 0 ? slideMatches.length : 6;
     }
 
@@ -364,7 +364,7 @@ export async function PUT(request: Request) {
         const fileContent = fileBuffer.toString("utf-8");
 
         if (!manualSlideCount || manualSlideCount <= 0) {
-          const slideMatches = fileContent.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+          const slideMatches = fileContent.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
           finalSlideCount = slideMatches && slideMatches.length > 0 ? slideMatches.length : 6;
         }
 

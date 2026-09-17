@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     // Auto-detect slides count from html
-    const slideMatches = htmlContent.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+    const slideMatches = htmlContent.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
     const detectedSlides = slideMatches && slideMatches.length > 0 ? slideMatches.length : 6;
 
     const cleanedText = cleanHtmlForAI(htmlContent);

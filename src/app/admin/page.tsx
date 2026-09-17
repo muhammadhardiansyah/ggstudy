@@ -267,7 +267,7 @@ export default function AdminPage() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
-        const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+        const matches = text.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
         const count = matches ? matches.length : 6;
         setDetectedSlideCount(count);
         setSlideCount(count);
@@ -281,7 +281,7 @@ export default function AdminPage() {
     setPastedHtml(text);
 
     if (text.trim()) {
-      const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+      const matches = text.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
       const count = matches && matches.length > 0 ? matches.length : 6;
       setDetectedSlideCount(count);
       setSlideCount(count);
@@ -591,7 +591,7 @@ export default function AdminPage() {
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
-        const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+        const matches = text.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
         const count = matches && matches.length > 0 ? matches.length : 6;
         setEditDetectedSlideCount(count);
         setEditSlideCount(count);
@@ -603,7 +603,7 @@ export default function AdminPage() {
   function handleEditPastedHtmlChange(text: string) {
     setEditPastedHtml(text);
     if (text) {
-      const matches = text.match(/class=["'][^"']*\bslide\b[^"']*["']/gi);
+      const matches = text.match(/class=["'][^"']*\bslide(?![_-])[^"']*["']/gi);
       const count = matches && matches.length > 0 ? matches.length : 6;
       setEditDetectedSlideCount(count);
       setEditSlideCount(count);

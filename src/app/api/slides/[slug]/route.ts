@@ -16,12 +16,12 @@ const PORTAL_BRIDGE_SCRIPT = `
   }
 
   function getActiveIndex() {
-    if (typeof window.currentSlide === 'number') {
-      return window.currentSlide;
-    }
     var slides = getSlides();
     for (var i = 0; i < slides.length; i++) {
       if (slides[i].classList.contains('active')) return i;
+    }
+    if (typeof window.currentSlide === 'number') {
+      return window.currentSlide;
     }
     return 0;
   }
@@ -42,6 +42,7 @@ const PORTAL_BRIDGE_SCRIPT = `
     if (typeof window.showSlide === 'function' && !window.showSlide.__bridged) {
       var origShow = window.showSlide;
       window.showSlide = function(idx) {
+        window.currentSlide = idx;
         var res = origShow.apply(this, arguments);
         sendSlideUpdate();
         return res;
@@ -215,7 +216,7 @@ export async function GET(
       headers: {
         "Content-Type": "text/html; charset=utf-8",
         "Content-Disposition": "inline",
-        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
       },
     });
   } catch (err: any) {
