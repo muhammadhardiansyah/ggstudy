@@ -26,9 +26,13 @@ import {
   Edit3,
   Save,
   X,
+  Users,
+  Send,
 } from "lucide-react";
 import { MaterialItem, DifficultyLevel, Slide1Theme } from "@/types/material";
 import { LevelBadge } from "@/components/LevelBadge";
+import { StudentsManagement } from "@/components/admin/StudentsManagement";
+import { ReportsManagement } from "@/components/admin/ReportsManagement";
 
 const COLOR_PRESETS = [
   {
@@ -92,7 +96,7 @@ export default function AdminPage() {
 
   // Dashboard state
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"upload" | "list">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "list" | "students" | "reports">("upload");
 
   // Drag and drop reordering state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -1020,6 +1024,28 @@ export default function AdminPage() {
           <Layers className="w-3.5 h-3.5" />
           Kelola Materi ({materials.length})
         </button>
+        <button
+          onClick={() => setActiveTab("students")}
+          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "students"
+              ? "border-[#cc8b56] text-[#cc8b56]"
+              : "border-transparent text-[#a98467] hover:text-[#cc8b56]"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          Kelola Siswa
+        </button>
+        <button
+          onClick={() => setActiveTab("reports")}
+          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "reports"
+              ? "border-[#cc8b56] text-[#cc8b56]"
+              : "border-transparent text-[#a98467] hover:text-[#cc8b56]"
+          }`}
+        >
+          <Send className="w-3.5 h-3.5" />
+          Kirim Laporan
+        </button>
       </div>
 
       {/* TAB 1: FORM TAMBAH MATERI */}
@@ -1716,6 +1742,12 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* TAB 3: DAFTAR & KELOLA SISWA */}
+      {activeTab === "students" && <StudentsManagement />}
+
+      {/* TAB 4: KIRIM LAPORAN */}
+      {activeTab === "reports" && <ReportsManagement />}
 
       {/* Edit Material Modal */}
       {editingMaterial && (

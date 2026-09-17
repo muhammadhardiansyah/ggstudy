@@ -1,5 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { MaterialItem } from "@/types/material";
+import { Student, Submission, Report } from "@/types/student";
 import rawMaterialsFallback from "@/data/materials.json";
 import fs from "fs/promises";
 import path from "path";
@@ -373,4 +374,431 @@ export async function deleteMaterial(id: string): Promise<MaterialItem | null> {
 
   return deletedItem;
 }
+
+// ==========================================
+// STUDENT MANAGEMENT FUNCTIONS
+// ==========================================
+
+export function mapRowToStudent(row: any): Student {
+  return {
+    id: row.id,
+    name: row.name,
+    studentEmail: row.student_email,
+    parentName: row.parent_name || undefined,
+    parentEmail: row.parent_email,
+    notes: row.notes || undefined,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+  };
+}
+
+export async function getAllStudents(): Promise<Student[]> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+      FROM students
+      ORDER BY name ASC
+    `;
+    return (rows || []).map(mapRowToStudent);
+  } catch (err) {
+    console.error("Gagal mengambil data siswa dari Neon:", err);
+    return [];
+  }
+}
+
+export async function getStudentById(id: string): Promise<Student | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+      FROM students
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+    return mapRowToStudent(rows[0]);
+  } catch (err) {
+    console.error("Gagal mengambil siswa by ID:", err);
+    return null;
+  }
+}
+
+export async function getStudentByEmail(email: string): Promise<Student | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+      FROM students
+      WHERE LOWER(student_email) = ${email.toLowerCase().trim()}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+    return mapRowToStudent(rows[0]);
+  } catch (err) {
+    console.error("Gagal mengambil siswa by email:", err);
+    return null;
+  }
+}
+
+export async function createStudent(data: Omit<Student, "createdAt" | "updatedAt">): Promise<Student> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  const rows = await sql`
+    INSERT INTO students (
+      id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+    ) VALUES (
+      ${data.id},
+      ${data.name.trim()},
+      ${data.studentEmail.toLowerCase().trim()},
+      ${data.parentName?.trim() || null},
+      ${data.parentEmail.toLowerCase().trim()},
+      ${data.notes?.trim() || null},
+      NOW(),
+      NOW()
+    )
+    RETURNING id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+  `;
+
+  return mapRowToStudent(rows[0]);
+}
+
+export async function updateStudent(id: string, data: Partial<Student>): Promise<Student | null> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  const existing = await getStudentById(id);
+  if (!existing) return null;
+
+  const updatedName = data.name !== undefined ? data.name.trim() : existing.name;
+  const updatedStudentEmail = data.studentEmail !== undefined ? data.studentEmail.toLowerCase().trim() : existing.studentEmail;
+  const updatedParentName = data.parentName !== undefined ? data.parentName.trim() : (existing.parentName || null);
+  const updatedParentEmail = data.parentEmail !== undefined ? data.parentEmail.toLowerCase().trim() : existing.parentEmail;
+  const updatedNotes = data.notes !== undefined ? data.notes.trim() : (existing.notes || null);
+
+  const rows = await sql`
+    UPDATE students
+    SET
+      name = ${updatedName},
+      student_email = ${updatedStudentEmail},
+      parent_name = ${updatedParentName},
+      parent_email = ${updatedParentEmail},
+      notes = ${updatedNotes},
+      updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING id, name, student_email, parent_name, parent_email, notes, created_at, updated_at
+  `;
+
+  if (!rows || rows.length === 0) return null;
+  return mapRowToStudent(rows[0]);
+}
+
+export async function deleteStudent(id: string): Promise<boolean> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  await sql`
+    DELETE FROM students
+    WHERE id = ${id}
+  `;
+
+  return true;
+}
+
+// ==========================================
+// SUBMISSION MANAGEMENT FUNCTIONS
+// ==========================================
+
+export function mapRowToSubmission(row: any): Submission {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    materialSlug: row.material_slug,
+    fileName: row.file_name || undefined,
+    fileUrl: row.file_url || undefined,
+    codeContent: row.code_content || undefined,
+    language: row.language || "python",
+    notes: row.notes || undefined,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+  };
+}
+
+export async function getSubmissionByStudentAndMaterial(
+  studentId: string,
+  materialSlug: string
+): Promise<Submission | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      FROM submissions
+      WHERE student_id = ${studentId} AND material_slug = ${materialSlug}
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+    return mapRowToSubmission(rows[0]);
+  } catch (err) {
+    console.error("Gagal mengambil submission:", err);
+    return null;
+  }
+}
+
+export async function upsertSubmission(data: {
+  id?: string;
+  studentId: string;
+  materialSlug: string;
+  fileName?: string;
+  fileUrl?: string;
+  codeContent?: string;
+  language?: string;
+  notes?: string;
+}): Promise<Submission> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  // Cek apakah sudah ada submission untuk student & material ini
+  const existing = await getSubmissionByStudentAndMaterial(data.studentId, data.materialSlug);
+
+  if (existing) {
+    // Update
+    const rows = await sql`
+      UPDATE submissions
+      SET
+        file_name = ${data.fileName !== undefined ? data.fileName : existing.fileName || null},
+        file_url = ${data.fileUrl !== undefined ? data.fileUrl : existing.fileUrl || null},
+        code_content = ${data.codeContent !== undefined ? data.codeContent : existing.codeContent || null},
+        language = ${data.language || existing.language || "python"},
+        notes = ${data.notes !== undefined ? data.notes : existing.notes || null},
+        updated_at = NOW()
+      WHERE id = ${existing.id}
+      RETURNING id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+    `;
+    return mapRowToSubmission(rows[0]);
+  } else {
+    // Insert new
+    const id = data.id || `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const rows = await sql`
+      INSERT INTO submissions (
+        id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      ) VALUES (
+        ${id},
+        ${data.studentId},
+        ${data.materialSlug},
+        ${data.fileName || null},
+        ${data.fileUrl || null},
+        ${data.codeContent || null},
+        ${data.language || "python"},
+        ${data.notes || null},
+        NOW(),
+        NOW()
+      )
+      RETURNING id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+    `;
+    return mapRowToSubmission(rows[0]);
+  }
+}
+
+export async function getAllSubmissionsForMaterial(materialSlug: string): Promise<Submission[]> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      FROM submissions
+      WHERE material_slug = ${materialSlug}
+      ORDER BY updated_at DESC
+    `;
+    return (rows || []).map(mapRowToSubmission);
+  } catch (err) {
+    console.error("Gagal mengambil daftar submissions:", err);
+    return [];
+  }
+}
+
+// ==========================================
+// REPORT MANAGEMENT FUNCTIONS
+// ==========================================
+
+export function mapRowToReport(row: any): Report {
+  let slugs: string[] = [];
+  if (row.material_slugs) {
+    try {
+      slugs = typeof row.material_slugs === "string" ? JSON.parse(row.material_slugs) : row.material_slugs;
+    } catch {
+      slugs = [row.material_slug];
+    }
+  } else if (row.material_slug) {
+    slugs = [row.material_slug];
+  }
+
+  return {
+    id: row.id,
+    token: row.token,
+    studentId: row.student_id,
+    materialSlug: row.material_slug,
+    materialSlugs: slugs,
+    sessionPhotoUrl: row.session_photo_url || undefined,
+    teacherNotes: row.teacher_notes || undefined,
+    submissionId: row.submission_id || undefined,
+    status: row.status || "sent",
+    sentAt: row.sent_at ? new Date(row.sent_at).toISOString() : undefined,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+  };
+}
+
+export async function createReport(data: {
+  id?: string;
+  token: string;
+  studentId: string;
+  materialSlug: string;
+  materialSlugs?: string[];
+  sessionPhotoUrl?: string;
+  teacherNotes?: string;
+  submissionId?: string;
+  status?: "draft" | "sent";
+  sentAt?: string;
+}): Promise<Report> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  const id = data.id || `rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const slugsJson = JSON.stringify(
+    data.materialSlugs && data.materialSlugs.length > 0 ? data.materialSlugs : [data.materialSlug]
+  );
+
+  const rows = await sql`
+    INSERT INTO reports (
+      id, token, student_id, material_slug, material_slugs, session_photo_url, teacher_notes, submission_id, status, sent_at, created_at, updated_at
+    ) VALUES (
+      ${id},
+      ${data.token},
+      ${data.studentId},
+      ${data.materialSlug},
+      ${slugsJson},
+      ${data.sessionPhotoUrl || null},
+      ${data.teacherNotes || null},
+      ${data.submissionId || null},
+      ${data.status || "sent"},
+      ${data.sentAt ? new Date(data.sentAt) : new Date()},
+      NOW(),
+      NOW()
+    )
+    RETURNING id, token, student_id, material_slug, material_slugs, session_photo_url, teacher_notes, submission_id, status, sent_at, created_at, updated_at
+  `;
+
+  return mapRowToReport(rows[0]);
+}
+
+export async function getReportByToken(token: string) {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, token, student_id, material_slug, material_slugs, session_photo_url, teacher_notes, submission_id, status, sent_at, created_at, updated_at
+      FROM reports
+      WHERE token = ${token}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+
+    const report = mapRowToReport(rows[0]);
+    const student = await getStudentById(report.studentId);
+    if (!student) return null;
+
+    // Ambil detail seluruh materi yang dipelajari
+    const slugs =
+      report.materialSlugs && report.materialSlugs.length > 0
+        ? report.materialSlugs
+        : [report.materialSlug];
+    const materials: MaterialItem[] = [];
+    const submissions: Submission[] = [];
+
+    for (const slug of slugs) {
+      const mat = await getMaterialBySlug(slug);
+      if (mat) materials.push(mat);
+
+      const sub = await getSubmissionByStudentAndMaterial(student.id, slug);
+      if (sub) submissions.push(sub);
+    }
+
+    return {
+      report,
+      student,
+      materials,
+      submissions,
+    };
+  } catch (err) {
+    console.error("Gagal mengambil data report by token:", err);
+    return null;
+  }
+}
+
+export async function getAllReports(): Promise<
+  (Report & { studentName?: string; parentEmail?: string })[]
+> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT r.*, s.name as student_name, s.parent_email
+      FROM reports r
+      LEFT JOIN students s ON r.student_id = s.id
+      ORDER BY r.created_at DESC
+    `;
+
+    return (rows || []).map((row) => {
+      const rep = mapRowToReport(row);
+      return {
+        ...rep,
+        studentName: row.student_name || "Siswa",
+        parentEmail: row.parent_email || "",
+      };
+    });
+  } catch (err) {
+    console.error("Gagal mengambil daftar reports:", err);
+    return [];
+  }
+}
+
+export async function deleteReport(id: string): Promise<boolean> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  await sql`
+    DELETE FROM reports
+    WHERE id = ${id}
+  `;
+
+  return true;
+}
+
+
+
 

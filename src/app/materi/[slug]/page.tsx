@@ -5,6 +5,7 @@ import { Metadata } from "next";
 import { getMaterialBySlug, getAllMaterials } from "@/lib/db";
 import { SlideViewer } from "@/components/SlideViewer";
 import { LevelBadge } from "@/components/LevelBadge";
+import { StudentSubmission } from "@/components/StudentSubmission";
 import { Clock, Layers, Lock, ArrowLeft } from "lucide-react";
 
 interface Props {
@@ -86,48 +87,53 @@ export default async function MaterialDetailPage({ params }: Props) {
 
       {/* Module Metadata and Index */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-        {/* Left 2 Cols: Content description & Topics */}
-        <div className="lg:col-span-2 bg-white border-2 border-[#e8e1d5] rounded-2xl p-5 sm:p-7 space-y-5 shadow-[0_4px_14px_rgba(212,163,115,0.1)]">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#cc8b56]">
-                MODUL {material.orderNumber}
-              </span>
-              <span className="text-[#d4a373] font-bold">&bull;</span>
-              <span className="text-[11px] font-semibold text-[#a98467] uppercase tracking-wider">
-                {material.category}
-              </span>
-              <span className="text-[#e8e1d5] font-bold">|</span>
-              <LevelBadge level={material.level} />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-[#cc8b56] leading-snug">
-              {material.title}
-            </h2>
-            <p className="text-sm font-bold text-[#a98467]">
-              {material.subtitle}
-            </p>
-          </div>
-
-          <p className="text-xs sm:text-sm text-[#5c677d] leading-relaxed">
-            {material.description}
-          </p>
-
-          {/* Topics Covered */}
-          <div className="space-y-2.5 pt-3 border-t-2 border-dashed border-[#e9edc9]">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#cc8b56] block">
-              Fokus Pembelajaran di Modul Ini:
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {material.topics.map((topic, i) => (
-                <span
-                  key={i}
-                  className="px-3 py-1 rounded-lg bg-[#fdfbf7] text-[#5c677d] text-xs font-medium border border-[#e9edc9]"
-                >
-                  {topic}
+        {/* Left 2 Cols: Content description & Topics + Student Submission */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border-2 border-[#e8e1d5] rounded-2xl p-5 sm:p-7 space-y-5 shadow-[0_4px_14px_rgba(212,163,115,0.1)]">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#cc8b56]">
+                  MODUL {material.orderNumber}
                 </span>
-              ))}
+                <span className="text-[#d4a373] font-bold">&bull;</span>
+                <span className="text-[11px] font-semibold text-[#a98467] uppercase tracking-wider">
+                  {material.category}
+                </span>
+                <span className="text-[#e8e1d5] font-bold">|</span>
+                <LevelBadge level={material.level} />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-[#cc8b56] leading-snug">
+                {material.title}
+              </h2>
+              <p className="text-sm font-bold text-[#a98467]">
+                {material.subtitle}
+              </p>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#5c677d] leading-relaxed">
+              {material.description}
+            </p>
+
+            {/* Topics Covered */}
+            <div className="space-y-2.5 pt-3 border-t-2 border-dashed border-[#e9edc9]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#cc8b56] block">
+                Fokus Pembelajaran di Modul Ini:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {material.topics.map((topic, i) => (
+                  <span
+                    key={i}
+                    className="px-3 py-1 rounded-lg bg-[#fdfbf7] text-[#5c677d] text-xs font-medium border border-[#e9edc9]"
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Student Code Submission Section */}
+          <StudentSubmission materialSlug={material.slug} materialTitle={material.title} />
         </div>
 
         {/* Right 1 Col: Module Summary & Full List of All Modules */}

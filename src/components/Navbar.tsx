@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { materials } from "@/data/materials";
+import { UserNav } from "@/components/UserNav";
 
 export const Navbar: React.FC = () => {
   return (
@@ -16,23 +17,25 @@ export const Navbar: React.FC = () => {
               GG Study
             </span>
             <span className="text-xs text-[#a98467]">
-              Materi & Latihan Koding Python
+              Materi &amp; Latihan Koding Python
             </span>
           </div>
         </Link>
 
-        {/* Right Info */}
+        {/* Right Info & User Authentication */}
         <div className="flex items-center gap-3 text-xs">
           <Link
             href="/"
-            className="text-[#a98467] hover:text-[#cc8b56] font-semibold transition-colors px-2 py-1 rounded"
+            className="text-[#a98467] hover:text-[#cc8b56] font-semibold transition-colors px-2 py-1 rounded hidden sm:inline-block"
           >
             Semua Materi
           </Link>
-          <span className="text-[#e9edc9] font-bold">|</span>
-          <span className="text-[#5c677d] font-semibold bg-[#fdfbf7] px-2.5 py-1 rounded-lg border border-[#e9edc9]">
+          <span className="text-[#e9edc9] font-bold hidden sm:inline-block">|</span>
+          <span className="text-[#5c677d] font-semibold bg-[#fdfbf7] px-2.5 py-1 rounded-lg border border-[#e9edc9] hidden md:inline-block">
             {materials.length} Modul Aktif
           </span>
+
+          <UserNav />
         </div>
       </div>
     </header>
