@@ -33,6 +33,7 @@ import { MaterialItem, DifficultyLevel, Slide1Theme } from "@/types/material";
 import { LevelBadge } from "@/components/LevelBadge";
 import { StudentsManagement } from "@/components/admin/StudentsManagement";
 import { ReportsManagement } from "@/components/admin/ReportsManagement";
+import { SubmissionsDashboard } from "@/components/admin/SubmissionsDashboard";
 
 const COLOR_PRESETS = [
   {
@@ -96,7 +97,7 @@ export default function AdminPage() {
 
   // Dashboard state
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"upload" | "list" | "students" | "reports">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "list" | "students" | "submissions" | "reports">("upload");
 
   // Drag and drop reordering state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -1036,6 +1037,17 @@ export default function AdminPage() {
           Kelola Siswa
         </button>
         <button
+          onClick={() => setActiveTab("submissions")}
+          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "submissions"
+              ? "border-[#cc8b56] text-[#cc8b56]"
+              : "border-transparent text-[#a98467] hover:text-[#cc8b56]"
+          }`}
+        >
+          <FileCode className="w-3.5 h-3.5" />
+          Tugas Murid
+        </button>
+        <button
           onClick={() => setActiveTab("reports")}
           className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
             activeTab === "reports"
@@ -1746,7 +1758,16 @@ export default function AdminPage() {
       {/* TAB 3: DAFTAR & KELOLA SISWA */}
       {activeTab === "students" && <StudentsManagement />}
 
-      {/* TAB 4: KIRIM LAPORAN */}
+      {/* TAB 4: TUGAS MURID */}
+      {activeTab === "submissions" && (
+        <SubmissionsDashboard
+          onSelectForReport={() => {
+            setActiveTab("reports");
+          }}
+        />
+      )}
+
+      {/* TAB 5: KIRIM LAPORAN */}
       {activeTab === "reports" && <ReportsManagement />}
 
       {/* Edit Material Modal */}
