@@ -27,7 +27,7 @@ export const revalidate = 0;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const data = await getSubmissionByGradeToken(params.token);
-  if (!data || data.submission.gradeScore === undefined || data.submission.gradeScore === null) {
+  if (!data || typeof data.submission.gradeScore !== "number") {
     return {
       title: "Hasil Penilaian Tidak Ditemukan | GG Study",
       robots: { index: false, follow: false },
@@ -81,12 +81,13 @@ function getScoreBadge(score: number) {
 export default async function GradeShowcasePage({ params }: Props) {
   const data = await getSubmissionByGradeToken(params.token);
 
-  if (!data || data.submission.gradeScore === undefined || data.submission.gradeScore === null) {
+  if (!data) {
     notFound();
   }
 
   const { submission, student, material } = data;
   const score = submission.gradeScore;
+
   if (typeof score !== "number") {
     notFound();
   }
@@ -104,7 +105,11 @@ export default async function GradeShowcasePage({ params }: Props) {
     : "Baru saja";
 
   const criteria = submission.gradeCriteria;
-  const hasCriteria = criteria && (criteria.correctness || criteria.cleanliness || criteria.creativity);
+  const hasCriteria =
+    criteria &&
+    (criteria.conceptScore !== undefined ||
+      criteria.cleanlinessScore !== undefined ||
+      criteria.completionScore !== undefined);
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8 pb-16">
@@ -144,9 +149,9 @@ export default async function GradeShowcasePage({ params }: Props) {
             <User className="w-3.5 h-3.5 text-stone-600" />
             Siswa: <strong>{student.name}</strong>
           </span>
-          {student.school && (
+          {student.parentName && (
             <span className="px-2.5 py-1 rounded-lg bg-stone-100 border border-stone-200 font-medium text-[#1c1917]">
-              Sekolah: <strong>{student.school}</strong>
+              Orang Tua: <strong>{student.parentName}</strong>
             </span>
           )}
           <span className="px-2.5 py-1 rounded-lg bg-stone-100 border border-stone-200 font-medium text-[#1c1917]">
@@ -220,22 +225,22 @@ export default async function GradeShowcasePage({ params }: Props) {
                   Rincian Penilaian Aspek:
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {criteria?.correctness !== undefined && (
+                  {criteria?.conceptScore !== undefined && (
                     <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-600 font-medium">Ketepatan Logika</div>
-                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.correctness} / 100</div>
+                      <div className="text-[11px] text-stone-600 font-medium">Pemahaman Logika</div>
+                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.conceptScore} / 100</div>
                     </div>
                   )}
-                  {criteria?.cleanliness !== undefined && (
+                  {criteria?.cleanlinessScore !== undefined && (
                     <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
                       <div className="text-[11px] text-stone-600 font-medium">Kerapian Kode</div>
-                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.cleanliness} / 100</div>
+                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.cleanlinessScore} / 100</div>
                     </div>
                   )}
-                  {criteria?.creativity !== undefined && (
+                  {criteria?.completionScore !== undefined && (
                     <div className="p-2.5 rounded-xl bg-stone-50 border border-stone-200">
-                      <div className="text-[11px] text-stone-600 font-medium">Kreativitas Solusi</div>
-                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.creativity} / 100</div>
+                      <div className="text-[11px] text-stone-600 font-medium">Penyelesaian Masalah</div>
+                      <div className="text-sm font-bold text-[#1c1917] mt-0.5">{criteria.completionScore} / 100</div>
                     </div>
                   )}
                 </div>
