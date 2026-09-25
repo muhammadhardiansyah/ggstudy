@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { MaterialItem } from "@/types/material";
-import { Student, Submission, Report } from "@/types/student";
+import { Student, Submission, Report, GradeCriteria } from "@/types/student";
 import rawMaterialsFallback from "@/data/materials.json";
 import fs from "fs/promises";
 import path from "path";
@@ -523,6 +523,15 @@ export async function deleteStudent(id: string): Promise<boolean> {
 // ==========================================
 
 export function mapRowToSubmission(row: any): Submission {
+  let criteria = undefined;
+  if (row.grade_criteria) {
+    try {
+      criteria = typeof row.grade_criteria === "string" ? JSON.parse(row.grade_criteria) : row.grade_criteria;
+    } catch {
+      criteria = undefined;
+    }
+  }
+
   return {
     id: row.id,
     studentId: row.student_id,
@@ -534,6 +543,12 @@ export function mapRowToSubmission(row: any): Submission {
     notes: row.notes || undefined,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+    gradeScore: typeof row.grade_score === "number" ? row.grade_score : (row.grade_score ? Number(row.grade_score) : undefined),
+    gradeFeedback: row.grade_feedback || undefined,
+    gradeCriteria: criteria,
+    gradeToken: row.grade_token || undefined,
+    gradedAt: row.graded_at ? new Date(row.graded_at).toISOString() : undefined,
+    status: row.status || (row.grade_score !== null && row.grade_score !== undefined ? "graded" : "submitted"),
   };
 }
 
@@ -546,7 +561,8 @@ export async function getSubmissionByStudentAndMaterial(
 
   try {
     const rows = await sql`
-      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
       FROM submissions
       WHERE student_id = ${studentId} AND material_slug = ${materialSlug}
       ORDER BY updated_at DESC
@@ -556,6 +572,26 @@ export async function getSubmissionByStudentAndMaterial(
     return mapRowToSubmission(rows[0]);
   } catch (err) {
     console.error("Gagal mengambil submission:", err);
+    return null;
+  }
+}
+
+export async function getSubmissionById(id: string): Promise<Submission | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
+      FROM submissions
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+    return mapRowToSubmission(rows[0]);
+  } catch (err) {
+    console.error("Gagal mengambil submission by ID:", err);
     return null;
   }
 }
@@ -623,7 +659,8 @@ export async function getAllSubmissionsForMaterial(materialSlug: string): Promis
 
   try {
     const rows = await sql`
-      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
       FROM submissions
       WHERE material_slug = ${materialSlug}
       ORDER BY updated_at DESC
@@ -641,7 +678,8 @@ export async function getSubmissionsByStudent(studentId: string): Promise<Submis
 
   try {
     const rows = await sql`
-      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
       FROM submissions
       WHERE student_id = ${studentId}
       ORDER BY updated_at DESC
@@ -659,7 +697,8 @@ export async function getAllSubmissions(): Promise<Submission[]> {
 
   try {
     const rows = await sql`
-      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
       FROM submissions
       ORDER BY updated_at DESC
     `;
@@ -667,6 +706,81 @@ export async function getAllSubmissions(): Promise<Submission[]> {
   } catch (err) {
     console.error("Gagal mengambil seluruh submissions:", err);
     return [];
+  }
+}
+
+export async function gradeSubmission(
+  submissionId: string,
+  data: {
+    score: number;
+    feedback?: string;
+    criteria?: GradeCriteria;
+  }
+): Promise<Submission> {
+  const sql = getDbClient();
+  if (!sql) throw new Error("Koneksi database Neon tidak tersedia");
+
+  // Check if token already exists for this submission
+  const existing = await sql`
+    SELECT id, grade_token FROM submissions WHERE id = ${submissionId} LIMIT 1
+  `;
+  if (!existing || existing.length === 0) {
+    throw new Error("Data tugas siswa tidak ditemukan");
+  }
+
+  const token = existing[0].grade_token || `grd_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  const rows = await sql`
+    UPDATE submissions
+    SET
+      grade_score = ${data.score},
+      grade_feedback = ${data.feedback || null},
+      grade_criteria = ${data.criteria ? JSON.stringify(data.criteria) : null}::jsonb,
+      grade_token = ${token},
+      graded_at = NOW(),
+      status = 'graded',
+      updated_at = NOW()
+    WHERE id = ${submissionId}
+    RETURNING id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+              grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
+  `;
+
+  if (!rows || rows.length === 0) {
+    throw new Error("Gagal menyimpan penilaian tugas");
+  }
+
+  return mapRowToSubmission(rows[0]);
+}
+
+export async function getSubmissionByGradeToken(token: string): Promise<{
+  submission: Submission;
+  student: Student;
+  material: MaterialItem;
+} | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT id, student_id, material_slug, file_name, file_url, code_content, language, notes, created_at, updated_at,
+             grade_score, grade_feedback, grade_criteria, grade_token, graded_at, status
+      FROM submissions
+      WHERE grade_token = ${token}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+
+    const submission = mapRowToSubmission(rows[0]);
+    const student = await getStudentById(submission.studentId);
+    if (!student) return null;
+
+    const material = await getMaterialBySlug(submission.materialSlug);
+    if (!material) return null;
+
+    return { submission, student, material };
+  } catch (err) {
+    console.error("Gagal mengambil data nilai submission by token:", err);
+    return null;
   }
 }
 

@@ -9,6 +9,12 @@ export interface Student {
   updatedAt?: string;
 }
 
+export interface GradeCriteria {
+  conceptScore?: number; // Pemahaman Konsep (Logika & Algoritma)
+  cleanlinessScore?: number; // Kerapian & Struktur Kode
+  completionScore?: number; // Penyelesaian Masalah & Output
+}
+
 export interface Submission {
   id: string;
   studentId: string;
@@ -20,6 +26,13 @@ export interface Submission {
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
+  // Penilaian Pengajar
+  gradeScore?: number;
+  gradeFeedback?: string;
+  gradeCriteria?: GradeCriteria;
+  gradeToken?: string;
+  gradedAt?: string;
+  status?: "submitted" | "graded";
 }
 
 export interface Report {
