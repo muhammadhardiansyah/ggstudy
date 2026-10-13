@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { MaterialItem } from "@/types/material";
-import { Student, Submission, Report, GradeCriteria } from "@/types/student";
+import { Student, Submission, Report, GradeCriteria, Invoice } from "@/types/student";
 import rawMaterialsFallback from "@/data/materials.json";
 import fs from "fs/promises";
 import path from "path";
@@ -947,6 +947,211 @@ export async function deleteReport(id: string): Promise<boolean> {
 
   return true;
 }
+
+// ==========================================
+// 7. INVOICES MANAGEMENT (Tagihan Sesi)
+// ==========================================
+
+export function mapRowToInvoice(row: any): Invoice {
+  let reportIds: string[] = [];
+  if (row.report_ids) {
+    try {
+      reportIds = typeof row.report_ids === "string" ? JSON.parse(row.report_ids) : row.report_ids;
+    } catch {
+      reportIds = [];
+    }
+  }
+
+  return {
+    id: row.id,
+    invoiceNumber: row.invoice_number,
+    token: row.token,
+    studentId: row.student_id,
+    reportIds: Array.isArray(reportIds) ? reportIds : [],
+    amount: Number(row.amount || 200000),
+    status: row.status === "paid" ? "paid" : "unpaid",
+    notes: row.notes || undefined,
+    bankName: row.bank_name || "Bank Mandiri",
+    accountNumber: row.account_number || "1380018308176",
+    accountHolder: row.account_holder || "MUHAMMAD HARDIANSYAH",
+    paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : undefined,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined,
+  };
+}
+
+export async function createInvoice(data: {
+  studentId: string;
+  reportIds: string[];
+  amount: number;
+  notes?: string;
+}): Promise<Invoice> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  const now = new Date();
+  const yymm = `${String(now.getFullYear()).slice(-2)}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const id = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const invoiceNumber = `INV/${yymm}/${randomSuffix}`;
+  const token = `inv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  const reportIdsJson = JSON.stringify(data.reportIds || []);
+
+  const rows = await sql`
+    INSERT INTO invoices (
+      id, invoice_number, token, student_id, report_ids, amount, status, notes,
+      bank_name, account_number, account_holder, created_at, updated_at
+    ) VALUES (
+      ${id},
+      ${invoiceNumber},
+      ${token},
+      ${data.studentId},
+      ${reportIdsJson}::jsonb,
+      ${data.amount},
+      'unpaid',
+      ${data.notes || null},
+      'Bank Mandiri',
+      '1380018308176',
+      'MUHAMMAD HARDIANSYAH',
+      NOW(),
+      NOW()
+    )
+    RETURNING *
+  `;
+
+  return mapRowToInvoice(rows[0]);
+}
+
+export async function getAllInvoices(): Promise<
+  (Invoice & { studentName?: string; parentName?: string; parentEmail?: string })[]
+> {
+  const sql = getDbClient();
+  if (!sql) return [];
+
+  try {
+    const rows = await sql`
+      SELECT i.*, s.name as student_name, s.parent_name, s.parent_email
+      FROM invoices i
+      LEFT JOIN students s ON i.student_id = s.id
+      ORDER BY i.created_at DESC
+    `;
+
+    return (rows || []).map((row) => ({
+      ...mapRowToInvoice(row),
+      studentName: row.student_name || "Siswa",
+      parentName: row.parent_name || undefined,
+      parentEmail: row.parent_email || "",
+    }));
+  } catch (err) {
+    console.error("Gagal mengambil daftar invoices:", err);
+    return [];
+  }
+}
+
+export async function getInvoiceByToken(token: string): Promise<{
+  invoice: Invoice;
+  student: Student;
+  sessions: (Report & { materials: MaterialItem[] })[];
+} | null> {
+  const sql = getDbClient();
+  if (!sql) return null;
+
+  try {
+    const rows = await sql`
+      SELECT * FROM invoices
+      WHERE token = ${token}
+      LIMIT 1
+    `;
+    if (!rows || rows.length === 0) return null;
+
+    const invoice = mapRowToInvoice(rows[0]);
+    const student = await getStudentById(invoice.studentId);
+    if (!student) return null;
+
+    const allMaterials = await getAllMaterials();
+    const materialMap = new Map(allMaterials.map((m) => [m.slug, m]));
+
+    const sessions: (Report & { materials: MaterialItem[] })[] = [];
+    if (invoice.reportIds.length > 0) {
+      const reportRows = await sql`
+        SELECT * FROM reports
+        WHERE id = ANY(${invoice.reportIds})
+        ORDER BY sent_at ASC, created_at ASC
+      `;
+
+      for (const rRow of reportRows || []) {
+        const rep = mapRowToReport(rRow);
+        const slugs =
+          rep.materialSlugs && rep.materialSlugs.length > 0
+            ? rep.materialSlugs
+            : [rep.materialSlug];
+        const mats: MaterialItem[] = [];
+        for (const s of slugs) {
+          const found = materialMap.get(s);
+          if (found) mats.push(found);
+        }
+        sessions.push({
+          ...rep,
+          materials: mats,
+        });
+      }
+    }
+
+    return {
+      invoice,
+      student,
+      sessions,
+    };
+  } catch (err) {
+    console.error("Gagal mengambil invoice by token:", err);
+    return null;
+  }
+}
+
+export async function updateInvoiceStatus(
+  id: string,
+  status: "unpaid" | "paid"
+): Promise<Invoice | null> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  const rows =
+    status === "paid"
+      ? await sql`
+          UPDATE invoices
+          SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING *
+        `
+      : await sql`
+          UPDATE invoices
+          SET status = 'unpaid', paid_at = NULL, updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING *
+        `;
+
+  if (!rows || rows.length === 0) return null;
+  return mapRowToInvoice(rows[0]);
+}
+
+export async function deleteInvoice(id: string): Promise<boolean> {
+  const sql = getDbClient();
+  if (!sql) {
+    throw new Error("Koneksi database Neon tidak tersedia");
+  }
+
+  await sql`
+    DELETE FROM invoices
+    WHERE id = ${id}
+  `;
+
+  return true;
+}
+
 
 
 

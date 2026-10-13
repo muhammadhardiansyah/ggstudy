@@ -28,12 +28,14 @@ import {
   X,
   Users,
   Send,
+  Receipt,
 } from "lucide-react";
 import { MaterialItem, DifficultyLevel, Slide1Theme } from "@/types/material";
 import { LevelBadge } from "@/components/LevelBadge";
 import { StudentsManagement } from "@/components/admin/StudentsManagement";
 import { ReportsManagement } from "@/components/admin/ReportsManagement";
 import { SubmissionsDashboard } from "@/components/admin/SubmissionsDashboard";
+import { InvoicesManagement } from "@/components/admin/InvoicesManagement";
 
 const COLOR_PRESETS = [
   {
@@ -97,7 +99,7 @@ export default function AdminPage() {
 
   // Dashboard state
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
-  const [activeTab, setActiveTab] = useState<"upload" | "list" | "students" | "submissions" | "reports">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "list" | "students" | "submissions" | "reports" | "invoices">("upload");
 
   // Drag and drop reordering state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -1058,6 +1060,17 @@ export default function AdminPage() {
           <Send className="w-3.5 h-3.5" />
           Kirim Laporan
         </button>
+        <button
+          onClick={() => setActiveTab("invoices")}
+          className={`pb-2.5 px-3 text-xs font-bold transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            activeTab === "invoices"
+              ? "border-[#cc8b56] text-[#cc8b56]"
+              : "border-transparent text-[#a98467] hover:text-[#cc8b56]"
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          Tagihan &amp; Invoice
+        </button>
       </div>
 
       {/* TAB 1: FORM TAMBAH MATERI */}
@@ -1769,6 +1782,9 @@ export default function AdminPage() {
 
       {/* TAB 5: KIRIM LAPORAN */}
       {activeTab === "reports" && <ReportsManagement />}
+
+      {/* TAB 6: TAGIHAN & INVOICE */}
+      {activeTab === "invoices" && <InvoicesManagement />}
 
       {/* Edit Material Modal */}
       {editingMaterial && (

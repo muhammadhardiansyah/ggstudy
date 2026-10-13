@@ -50,3 +50,21 @@ export interface Report {
   updatedAt?: string;
 }
 
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  token: string;
+  studentId: string;
+  reportIds: string[];
+  amount: number;
+  status: "unpaid" | "paid";
+  notes?: string;
+  bankName: string;
+  accountNumber: string;
+  accountHolder: string;
+  paidAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
